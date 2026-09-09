@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\M3A.Api\M3A.Api.csproj" />
+    <ProjectReference Include="..\..\src\M3A.Delegates\M3A.Delegates.csproj" />
+    <ProjectReference Include="..\..\src\M3A.Domain\M3A.Domain.csproj" />
+    <ProjectReference Include="..\..\src\M3A.Repositories\M3A.Repositories.csproj" />
+  </ItemGroup>
+
+</Project>

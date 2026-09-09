@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\M3A.Domain\M3A.Domain.csproj" />
+    <ProjectReference Include="..\M3A.Repositories\M3A.Repositories.csproj" />
+  </ItemGroup>
+
+</Project>

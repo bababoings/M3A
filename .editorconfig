@@ -1,0 +1,41 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,props,targets,json,yml,yaml}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# Namespaces and usings
+csharp_style_namespace_declarations = file_scoped:error
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:error
+
+# Explicitness
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+csharp_prefer_braces = true:error
+dotnet_diagnostic.CS8618.severity = error
+
+# Naming: interfaces start with I
+dotnet_naming_rule.interfaces_start_with_i.symbols = interface_symbols
+dotnet_naming_rule.interfaces_start_with_i.style = prefix_i
+dotnet_naming_rule.interfaces_start_with_i.severity = error
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_style.prefix_i.required_prefix = I
+dotnet_naming_style.prefix_i.capitalization = pascal_case
+
+# Naming: private fields use _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = error
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
