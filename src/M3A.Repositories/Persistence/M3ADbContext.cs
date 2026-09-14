@@ -11,6 +11,9 @@ public class M3ADbContext(DbContextOptions<M3ADbContext> options) : DbContext(op
     /// <summary>Reference resource. Replace with the real aggregate roots.</summary>
     public DbSet<Item> Items => Set<Item>();
 
+    /// <summary>Venues an event can be held at.</summary>
+    public DbSet<Venue> Venues => Set<Venue>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
