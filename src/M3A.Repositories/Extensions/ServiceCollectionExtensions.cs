@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IVenueRepository, VenueRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
         return services;
     }
 }

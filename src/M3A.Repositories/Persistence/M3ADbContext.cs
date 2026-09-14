@@ -14,6 +14,9 @@ public class M3ADbContext(DbContextOptions<M3ADbContext> options) : DbContext(op
     /// <summary>Venues an event can be held at.</summary>
     public DbSet<Venue> Venues => Set<Venue>();
 
+    /// <summary>Events scheduled at venues.</summary>
+    public DbSet<Event> Events => Set<Event>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
