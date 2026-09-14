@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace M3A.Api.Tests;
 
@@ -8,9 +9,12 @@ namespace M3A.Api.Tests;
 /// </summary>
 public abstract class M3AApiTests : IClassFixture<M3AApiFactory>
 {
-    /// <summary>JSON options matching the API's camelCase contract.</summary>
+    /// <summary>
+    /// JSON options matching the API's contract: camelCase, and enums as strings just as
+    /// <c>AddApiServices</c> configures them.
+    /// </summary>
     protected static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+        new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     /// <summary>Creates a client bound to the shared in-memory API instance.</summary>
     protected M3AApiTests(M3AApiFactory factory) => Client = factory.CreateClient();

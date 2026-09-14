@@ -1,4 +1,5 @@
 using M3A.Domain.Entities;
+using M3A.Domain.Exceptions;
 
 namespace M3A.Delegates;
 
@@ -10,6 +11,7 @@ public interface ITicketDelegate
     Task<Ticket?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
     /// <summary>Creates a ticket for the given event with status Issued.</summary>
+    /// <exception cref="EntityNotFoundException">No event has the given id.</exception>
     Task<Ticket> CreateAsync(string eventId, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes a ticket. Throws EntityNotFoundException if it doesn't exist.</summary>

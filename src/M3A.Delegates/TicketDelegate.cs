@@ -7,7 +7,9 @@ using M3A.Repositories;
 namespace M3A.Delegates;
 
 /// <summary>Ticket business logic. Status changes are checked here.</summary>
-public sealed class TicketDelegate(ITicketRepository ticketRepository) : ITicketDelegate
+public sealed class TicketDelegate(
+    ITicketRepository ticketRepository,
+    IEventRepository eventRepository) : ITicketDelegate
 {
     public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default) =>
         ticketRepository.GetAllAsync(cancellationToken);
@@ -17,6 +19,13 @@ public sealed class TicketDelegate(ITicketRepository ticketRepository) : ITicket
 
     public async Task<Ticket> CreateAsync(string eventId, CancellationToken cancellationToken = default)
     {
+        // Checked here so an unknown event is a 404 rather than the database's foreign key
+        // violation surfacing as a 500.
+        if (!await eventRepository.ExistsAsync(eventId, cancellationToken))
+        {
+            throw new EntityNotFoundException(nameof(Event), eventId);
+        }
+
         var ticket = new Ticket { Id = ResourceId.New(), EventId = eventId, Status = TicketStatus.Issued };
         await ticketRepository.AddAsync(ticket, cancellationToken);
         return ticket;

@@ -14,10 +14,18 @@ public class EventDelegateTests
 {
     private readonly Mock<IEventRepository> _eventRepoMock = new(MockBehavior.Strict);
     private readonly Mock<IVenueRepository> _venueRepoMock = new(MockBehavior.Strict);
+    private readonly Mock<ITicketRepository> _ticketRepoMock = new(MockBehavior.Strict);
     private readonly IEventDelegate _delegate;
 
     public EventDelegateTests() =>
-        _delegate = new EventDelegate(_eventRepoMock.Object, _venueRepoMock.Object);
+        _delegate = new EventDelegate(
+            _eventRepoMock.Object, _venueRepoMock.Object, _ticketRepoMock.Object);
+
+    /// <summary>Sets up the "no tickets issued" case that lets a delete through.</summary>
+    private void NoTicketsFor(string eventId) =>
+        _ticketRepoMock
+            .Setup(repo => repo.ExistsForEventAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
     [Fact]
     public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
@@ -205,6 +213,7 @@ public class EventDelegateTests
     [Fact]
     public async Task DeleteAsync_Throws_WhenNotFound()
     {
+        NoTicketsFor("missing");
         _eventRepoMock
             .Setup(repo => repo.DeleteAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -215,11 +224,28 @@ public class EventDelegateTests
     [Fact]
     public async Task DeleteAsync_Succeeds_WhenFound()
     {
+        NoTicketsFor("event-1");
         _eventRepoMock
             .Setup(repo => repo.DeleteAsync("event-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         await _delegate.DeleteAsync("event-1");
         _eventRepoMock.Verify(repo => repo.DeleteAsync("event-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Throws_WhenTicketsHaveBeenIssued()
+    {
+        _ticketRepoMock
+            .Setup(repo => repo.ExistsForEventAsync("event-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<BusinessRuleViolationException>(
+            () => _delegate.DeleteAsync("event-1"));
+
+        // Never reaches the database, where the foreign key would have produced a 500.
+        _eventRepoMock.Verify(
+            repo => repo.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

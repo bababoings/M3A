@@ -33,7 +33,8 @@ public static class TicketRoutes
             .WithName("CreateTicket")
             .WithSummary("Issue a new ticket for an event")
             .WithValidation<CreateTicketDto>()
-            .Produces<TicketDto>(StatusCodes.Status201Created);
+            .Produces<TicketDto>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{ticketId}", DeleteAsync)
             .WithName("DeleteTicket")

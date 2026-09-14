@@ -11,7 +11,8 @@ namespace M3A.Delegates;
 /// </summary>
 public sealed class EventDelegate(
     IEventRepository eventRepository,
-    IVenueRepository venueRepository) : IEventDelegate
+    IVenueRepository venueRepository,
+    ITicketRepository ticketRepository) : IEventDelegate
 {
     /// <inheritdoc />
     public Task<IReadOnlyList<Event>> GetAllAsync(CancellationToken cancellationToken = default) =>
@@ -83,6 +84,15 @@ public sealed class EventDelegate(
     /// <inheritdoc />
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        // The tickets -> events foreign key is Restrict, so the database would reject this
+        // with a constraint violation. Refusing it here makes it the 422 it always was,
+        // rather than letting a DbUpdateException escape as a 500.
+        if (await ticketRepository.ExistsForEventAsync(id, cancellationToken))
+        {
+            throw new BusinessRuleViolationException(
+                $"Event '{id}' cannot be deleted because tickets have been issued for it.");
+        }
+
         if (!await eventRepository.DeleteAsync(id, cancellationToken))
         {
             throw new EntityNotFoundException(nameof(Event), id);
