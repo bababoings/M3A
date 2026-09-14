@@ -9,6 +9,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDelegates(this IServiceCollection services)
     {
         services.AddScoped<IItemDelegate, ItemDelegate>();
+        services.AddScoped<ITicketDelegate, TicketDelegate>();
         services.AddScoped<IVenueDelegate, VenueDelegate>();
         services.AddScoped<IEventDelegate, EventDelegate>();
         return services;
