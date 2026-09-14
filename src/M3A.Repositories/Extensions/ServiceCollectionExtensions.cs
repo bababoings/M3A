@@ -16,8 +16,14 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<M3ADbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString(ConnectionStringName)));
+        var template = configuration.GetConnectionString(ConnectionStringName)
+            ?? throw new InvalidOperationException(
+                $"Connection string '{ConnectionStringName}' is not configured.");
+
+        var connectionString = ConnectionStringTemplate.Expand(
+            template, Environment.GetEnvironmentVariable);
+
+        services.AddDbContext<M3ADbContext>(options => options.UseNpgsql(connectionString));
 
         return services.AddRepositoryImplementations();
     }
@@ -28,6 +34,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRepositoryImplementations(this IServiceCollection services)
     {
         services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<IVenueRepository, VenueRepository>();
         return services;
     }
 }
