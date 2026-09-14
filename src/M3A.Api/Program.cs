@@ -1,5 +1,10 @@
 using M3A.Api.Extensions;
 
+// Before anything reads configuration: real environment variables always take precedence,
+// so this is a no-op wherever the environment is already populated.
+DotEnvFile.Load(Directory.GetCurrentDirectory());
+DotEnvFile.Load(AppContext.BaseDirectory);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddM3AApi(builder.Configuration);
