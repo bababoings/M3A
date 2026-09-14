@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRepositoryImplementations(this IServiceCollection services)
     {
         services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<ITicketRepository, TicketRepository>();
         return services;
     }
 }

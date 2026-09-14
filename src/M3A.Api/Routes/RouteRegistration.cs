@@ -7,6 +7,7 @@ public static class RouteRegistration
     public static IEndpointRouteBuilder MapM3ARoutes(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapItemRoutes();
+        endpoints.MapTicketRoutes();
         return endpoints;
     }
 }
