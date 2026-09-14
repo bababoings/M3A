@@ -8,6 +8,8 @@ public static class RouteRegistration
     {
         endpoints.MapItemRoutes();
         endpoints.MapTicketRoutes();
+        endpoints.MapVenueRoutes();
+        endpoints.MapEventRoutes();
         return endpoints;
     }
 }

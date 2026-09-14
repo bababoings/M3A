@@ -21,6 +21,12 @@ public sealed class M3AApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
 
+        // A literal connection string with no ${...} placeholders, so the suite never depends
+        // on a .env file existing. The Npgsql registration it produces is removed below anyway.
+        builder.UseSetting(
+            "ConnectionStrings:DefaultConnection",
+            "Host=localhost;Database=m3a_test;Username=test;Password=test");
+
         builder.ConfigureServices(services =>
         {
             // EF Core registers the provider through IDbContextOptionsConfiguration<T> as well;
