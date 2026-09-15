@@ -13,7 +13,7 @@ namespace M3A.Delegates.Tests;
 public class ItemDelegateTests
 {
     private readonly Mock<IItemRepository> _repositoryMock = new(MockBehavior.Strict);
-    private readonly IItemDelegate _delegate;
+    private readonly ItemDelegate _delegate;
 
     /// <summary>Wires the delegate over its mocked repository.</summary>
     public ItemDelegateTests() => _delegate = new ItemDelegate(_repositoryMock.Object);

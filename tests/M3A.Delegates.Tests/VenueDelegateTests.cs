@@ -13,7 +13,7 @@ namespace M3A.Delegates.Tests;
 public class VenueDelegateTests
 {
     private readonly Mock<IVenueRepository> _repositoryMock = new(MockBehavior.Strict);
-    private readonly IVenueDelegate _delegate;
+    private readonly VenueDelegate _delegate;
 
     /// <summary>Wires the delegate over its mocked repository.</summary>
     public VenueDelegateTests() => _delegate = new VenueDelegate(_repositoryMock.Object);

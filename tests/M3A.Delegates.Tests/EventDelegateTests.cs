@@ -15,7 +15,7 @@ public class EventDelegateTests
     private readonly Mock<IEventRepository> _eventRepoMock = new(MockBehavior.Strict);
     private readonly Mock<IVenueRepository> _venueRepoMock = new(MockBehavior.Strict);
     private readonly Mock<ITicketRepository> _ticketRepoMock = new(MockBehavior.Strict);
-    private readonly IEventDelegate _delegate;
+    private readonly EventDelegate _delegate;
 
     public EventDelegateTests() =>
         _delegate = new EventDelegate(
