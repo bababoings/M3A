@@ -1,0 +1,1378 @@
+{
+    "openapi": "3.1.1",
+    "info": {
+        "title": "M3A Ticketing API",
+        "description": "REST API for managing venues, events, and tickets. Resource ids match `^[A-Za-z0-9\\-]+$`. Errors are returned as RFC 9457 problem details.",
+        "version": "v1"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5080/"
+        }
+    ],
+    "paths": {
+        "/items": {
+            "get": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "List all items",
+                "operationId": "GetItems",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ItemDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "Create a new item",
+                "operationId": "CreateItem",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateItemDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/items/{itemId}": {
+            "get": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "Get an item by id",
+                "operationId": "GetItemById",
+                "parameters": [
+                    {
+                        "name": "itemId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "Replace an existing item",
+                "operationId": "UpdateItem",
+                "parameters": [
+                    {
+                        "name": "itemId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateItemDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ItemDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Items"
+                ],
+                "summary": "Delete an item",
+                "operationId": "DeleteItem",
+                "parameters": [
+                    {
+                        "name": "itemId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "List all tickets",
+                "operationId": "GetTickets",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TicketDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Issue a new ticket for an event",
+                "operationId": "CreateTicket",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTicketDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{ticketId}": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Get a ticket by id",
+                "operationId": "GetTicketById",
+                "parameters": [
+                    {
+                        "name": "ticketId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Delete a ticket",
+                "operationId": "DeleteTicket",
+                "parameters": [
+                    {
+                        "name": "ticketId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{ticketId}/purchase": {
+            "post": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Purchase an issued ticket",
+                "operationId": "PurchaseTicket",
+                "parameters": [
+                    {
+                        "name": "ticketId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{ticketId}/redeem": {
+            "post": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Redeem a purchased ticket",
+                "operationId": "RedeemTicket",
+                "parameters": [
+                    {
+                        "name": "ticketId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/venues": {
+            "get": {
+                "tags": [
+                    "Venues"
+                ],
+                "summary": "List all venues",
+                "operationId": "GetVenues",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/VenueDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Venues"
+                ],
+                "summary": "Create a new venue",
+                "operationId": "CreateVenue",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateVenueDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VenueDto"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/venues/{venueId}": {
+            "get": {
+                "tags": [
+                    "Venues"
+                ],
+                "summary": "Get a venue by id",
+                "operationId": "GetVenueById",
+                "parameters": [
+                    {
+                        "name": "venueId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VenueDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Venues"
+                ],
+                "summary": "Replace an existing venue",
+                "operationId": "UpdateVenue",
+                "parameters": [
+                    {
+                        "name": "venueId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateVenueDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VenueDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Venues"
+                ],
+                "summary": "Delete a venue",
+                "operationId": "DeleteVenue",
+                "parameters": [
+                    {
+                        "name": "venueId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/events": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "List all events",
+                "operationId": "GetEvents",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/EventDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Create a new event",
+                "operationId": "CreateEvent",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateEventDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EventDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{eventId}": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Get an event by id",
+                "operationId": "GetEventById",
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EventDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Replace an existing event",
+                "operationId": "UpdateEvent",
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateEventDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EventDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Delete an event",
+                "operationId": "DeleteEvent",
+                "parameters": [
+                    {
+                        "name": "eventId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CreateEventDto": {
+                "required": [
+                    "name",
+                    "dateTime",
+                    "eventCapacity",
+                    "venueId"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable title of the event."
+                    },
+                    "dateTime": {
+                        "type": "string",
+                        "description": "When the event takes place.",
+                        "format": "date-time"
+                    },
+                    "eventCapacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total capacity allocated for this event.",
+                        "format": "int32"
+                    },
+                    "venueId": {
+                        "type": "string",
+                        "description": "Identifier of the venue hosting this event."
+                    }
+                },
+                "description": "Payload for `POST /events`."
+            },
+            "CreateItemDto": {
+                "required": [
+                    "name"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable name."
+                    }
+                },
+                "description": "Payload for `POST /items`."
+            },
+            "CreateTicketDto": {
+                "required": [
+                    "eventId"
+                ],
+                "type": "object",
+                "properties": {
+                    "eventId": {
+                        "type": "string"
+                    }
+                },
+                "description": "Request body to create a ticket."
+            },
+            "CreateVenueDto": {
+                "required": [
+                    "location",
+                    "capacity"
+                ],
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "Where the venue is."
+                    },
+                    "capacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total number of people the venue holds.",
+                        "format": "int32"
+                    }
+                },
+                "description": "Payload for `POST /venues`."
+            },
+            "EventDto": {
+                "required": [
+                    "id",
+                    "name",
+                    "dateTime",
+                    "eventCapacity",
+                    "venueId",
+                    "venue"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Resource identifier."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable title of the event."
+                    },
+                    "dateTime": {
+                        "type": "string",
+                        "description": "When the event takes place.",
+                        "format": "date-time"
+                    },
+                    "eventCapacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total capacity allocated for this event.",
+                        "format": "int32"
+                    },
+                    "venueId": {
+                        "type": "string",
+                        "description": "Identifier of the venue hosting this event."
+                    },
+                    "venue": {
+                        "oneOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "description": "Details of the hosting venue, if loaded.",
+                                "$ref": "#/components/schemas/VenueDto"
+                            }
+                        ]
+                    }
+                },
+                "description": "Representation of an event returned by the API."
+            },
+            "HttpValidationProblemDetails": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "title": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "status": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "null",
+                            "integer",
+                            "string"
+                        ],
+                        "format": "int32"
+                    },
+                    "detail": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "instance": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "ItemDto": {
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Resource identifier."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable name."
+                    }
+                },
+                "description": "Representation of an item returned by the API."
+            },
+            "ProblemDetails": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "title": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "status": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "null",
+                            "integer",
+                            "string"
+                        ],
+                        "format": "int32"
+                    },
+                    "detail": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "instance": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                }
+            },
+            "TicketDto": {
+                "required": [
+                    "id",
+                    "eventId",
+                    "status"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "eventId": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TicketStatus"
+                    }
+                },
+                "description": "Ticket returned by the API."
+            },
+            "TicketStatus": {
+                "enum": [
+                    "Issued",
+                    "Purchased",
+                    "Redeemed"
+                ],
+                "description": "Status of a ticket. Starts as Issued, then Purchased, then Redeemed."
+            },
+            "UpdateEventDto": {
+                "required": [
+                    "name",
+                    "dateTime",
+                    "eventCapacity",
+                    "venueId"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable title of the event."
+                    },
+                    "dateTime": {
+                        "type": "string",
+                        "description": "When the event takes place.",
+                        "format": "date-time"
+                    },
+                    "eventCapacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total capacity allocated for this event.",
+                        "format": "int32"
+                    },
+                    "venueId": {
+                        "type": "string",
+                        "description": "Identifier of the venue hosting this event."
+                    }
+                },
+                "description": "Payload for `PUT /events/{eventId}`."
+            },
+            "UpdateItemDto": {
+                "required": [
+                    "name"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Human readable name."
+                    }
+                },
+                "description": "Payload for `PUT /items/{itemId}`."
+            },
+            "UpdateVenueDto": {
+                "required": [
+                    "location",
+                    "capacity"
+                ],
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "Where the venue is."
+                    },
+                    "capacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total number of people the venue holds.",
+                        "format": "int32"
+                    }
+                },
+                "description": "Payload for `PUT /venues/{venueId}`."
+            },
+            "VenueDto": {
+                "required": [
+                    "id",
+                    "location",
+                    "capacity"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Resource identifier."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Where the venue is."
+                    },
+                    "capacity": {
+                        "pattern": "^-?(?:0|[1-9]\\d*)$",
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "description": "Total number of people the venue holds.",
+                        "format": "int32"
+                    }
+                },
+                "description": "Representation of a venue returned by the API."
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Items"
+        },
+        {
+            "name": "Tickets"
+        },
+        {
+            "name": "Venues"
+        },
+        {
+            "name": "Events"
+        }
+    ]
+}

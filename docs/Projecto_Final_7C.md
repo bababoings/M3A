@@ -5,7 +5,7 @@
 ## Overview
 - **Service**: {Service} Management REST API
 - **Language/Framework**: C# .NET 10+ with Minimal APIs
-- **Base URL**: `http://localhost:8080` (configurable via `appsettings.json`)
+- **Base URL**: `http://localhost:5080` (configurable via `appsettings.json`)
 - **Content-Type**: `application/json`
 - **ID Format**: Regex `[A-Za-z0-9\-]+`
 

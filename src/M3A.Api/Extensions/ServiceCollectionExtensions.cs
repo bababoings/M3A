@@ -3,6 +3,7 @@ using M3A.Api.Middleware;
 using M3A.Delegates.Extensions;
 using M3A.Repositories.Extensions;
 using FluentValidation;
+using Microsoft.OpenApi;
 
 namespace M3A.Api.Extensions;
 
@@ -39,7 +40,18 @@ public static class ServiceCollectionExtensions
 
         services.AddValidatorsFromAssembly(typeof(ServiceCollectionExtensions).Assembly, includeInternalTypes: true);
         services.AddExceptionHandler<GlobalExceptionHandler>();
-        services.AddOpenApi();
+        services.AddOpenApi(options =>
+            options.AddDocumentTransformer((document, _, _) =>
+            {
+                document.Info = new OpenApiInfo
+                {
+                    Title = "M3A Ticketing API",
+                    Version = "v1",
+                    Description = "REST API for managing venues, events, and tickets. "
+                        + "Resource ids match `^[A-Za-z0-9\\-]+$`. Errors are returned as RFC 9457 problem details.",
+                };
+                return Task.CompletedTask;
+            }));
 
         return services;
     }

@@ -4,7 +4,7 @@
 ## Overview
 - **Service**: M3A Ticketing REST API
 - **Language/Framework**: C# .NET 10 with Minimal APIs
-- **Base URL**: `http://localhost:8080` (from `src/M3A.Api/Properties/launchSettings.json`)
+- **Base URL**: `http://localhost:5080` (from `src/M3A.Api/Properties/launchSettings.json`)
 - **Content-Type**: `application/json`
 - **ID Format**: Regex `[A-Za-z0-9\-]+` — defined once in `Domain.ValueObjects.ResourceId.Pattern`
 - **Persistence**: EF Core 10 + Npgsql (PostgreSQL)
@@ -182,6 +182,9 @@ replacing the resource.
 - `DELETE` is not idempotent by design: deleting twice gives `204` then `404`.
 - Every route carries `WithName`, `WithSummary` and `Produces*` metadata; OpenAPI is served at
   `/openapi/v1.json` in the Development environment.
+  Swagger UI is served at `/swagger` (Development only). A checked-in snapshot of the spec lives at
+  `docs/openapi/openapi.json`; regenerate it with the API running:
+  `curl -s localhost:5080/openapi/v1.json | python3 -m json.tool > docs/openapi/openapi.json`.
 
 ---
 
@@ -430,7 +433,7 @@ M3A/
 dotnet build                                   # whole solution, warnings are errors
 dotnet test                                    # all four suites (117 tests)
 dotnet test --collect:"XPlat Code Coverage"    # with coverage
-dotnet run --project src/M3A.Api               # http://localhost:8080
+dotnet run --project src/M3A.Api               # http://localhost:5080
 ```
 
 `dotnet run` needs a PostgreSQL instance and a populated `.env`; the test suite needs neither
