@@ -12,6 +12,7 @@ public interface ITicketDelegate
 
     /// <summary>Creates a ticket for the given event with status Issued.</summary>
     /// <exception cref="EntityNotFoundException">No event has the given id.</exception>
+    /// <exception cref="BusinessRuleViolationException">The event's capacity has already been reached.</exception>
     Task<Ticket> CreateAsync(string eventId, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes a ticket. Throws EntityNotFoundException if it doesn't exist.</summary>

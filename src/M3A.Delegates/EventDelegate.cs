@@ -71,6 +71,14 @@ public sealed class EventDelegate(
 
         EnsureCapacityWithinVenueLimit(eventCapacity, venue.Capacity);
 
+        // Tickets already issued keep their places, so capacity can't drop below them.
+        var issued = await ticketRepository.CountForEventAsync(id, cancellationToken);
+        if (eventCapacity < issued)
+        {
+            throw new BusinessRuleViolationException(
+                $"Event capacity ({eventCapacity}) cannot be lower than the {issued} tickets already issued.");
+        }
+
         existing.Name = name;
         existing.DateTime = dateTime;
         existing.EventCapacity = eventCapacity;

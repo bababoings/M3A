@@ -38,6 +38,18 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     [Fact]
+    public async Task Post_Returns422_WhenEventIsAtCapacity()
+    {
+        var eventId = await CreateEventAsync(eventCapacity: 1);
+
+        var first = await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(eventId), JsonOptions);
+        var second = await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(eventId), JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, second.StatusCode);
+    }
+
+    [Fact]
     public async Task Purchase_Returns200_AndMovesTicketToPurchased()
     {
         var ticket = await IssueTicketAsync();
@@ -138,7 +150,7 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     /// <summary>Creates a venue and an event on it, returning the event id.</summary>
-    private async Task<string> CreateEventAsync()
+    private async Task<string> CreateEventAsync(int eventCapacity = 50000)
     {
         var venueResponse = await Client.PostAsJsonAsync(
             "/venues", new CreateVenueDto("Foro Sol", 65000), JsonOptions);
@@ -147,7 +159,7 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
 
         var eventResponse = await Client.PostAsJsonAsync(
             "/events",
-            new CreateEventDto("Concert", DateTimeOffset.UtcNow.AddDays(14), 50000, venue.Id),
+            new CreateEventDto("Concert", DateTimeOffset.UtcNow.AddDays(14), eventCapacity, venue.Id),
             JsonOptions);
         var @event = await ReadAsync<EventDto>(eventResponse);
         Assert.NotNull(@event);

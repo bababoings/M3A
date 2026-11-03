@@ -27,6 +27,12 @@ public class EventDelegateTests
             .Setup(repo => repo.ExistsForEventAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
+    /// <summary>Sets up how many tickets have been issued, which bounds how low capacity can go.</summary>
+    private void TicketsIssuedFor(string eventId, int issued) =>
+        _ticketRepoMock
+            .Setup(repo => repo.CountForEventAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(issued);
+
     [Fact]
     public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
     {
@@ -198,6 +204,8 @@ public class EventDelegateTests
             .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(venue);
 
+        TicketsIssuedFor("event-1", 0);
+
         _eventRepoMock
             .Setup(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -208,6 +216,53 @@ public class EventDelegateTests
         Assert.Equal(dt, updated.DateTime);
         Assert.Equal(400, updated.EventCapacity);
         _eventRepoMock.Verify(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Throws_WhenCapacityIsBelowIssuedTickets()
+    {
+        var existing = new EventBuilder().WithId("event-1").WithEventCapacity(100).Build();
+        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(1000).Build();
+
+        _eventRepoMock
+            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _venueRepoMock
+            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(venue);
+        TicketsIssuedFor("event-1", 10);
+
+        await Assert.ThrowsAsync<BusinessRuleViolationException>(
+            () => _delegate.UpdateAsync("event-1", "New Name", DateTimeOffset.UtcNow.AddDays(1), 9, "venue-1"));
+
+        // A refused update must leave the tracked entity untouched.
+        Assert.Equal(100, existing.EventCapacity);
+        _eventRepoMock.Verify(
+            repo => repo.UpdateAsync(It.IsAny<Event>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AllowsCapacityEqualToIssuedTickets()
+    {
+        var existing = new EventBuilder().WithId("event-1").WithEventCapacity(100).Build();
+        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(1000).Build();
+
+        _eventRepoMock
+            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _venueRepoMock
+            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(venue);
+        TicketsIssuedFor("event-1", 10);
+        _eventRepoMock
+            .Setup(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var updated = await _delegate.UpdateAsync(
+            "event-1", "New Name", DateTimeOffset.UtcNow.AddDays(1), 10, "venue-1");
+
+        Assert.Equal(10, updated.EventCapacity);
     }
 
     [Fact]

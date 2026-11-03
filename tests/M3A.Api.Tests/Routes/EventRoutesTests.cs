@@ -143,6 +143,28 @@ public class EventRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     [Fact]
+    public async Task Put_Returns422_WhenCapacityIsBelowIssuedTickets()
+    {
+        var venueResponse = await Client.PostAsJsonAsync(
+            "/venues", new CreateVenueDto("Arena", 5000), JsonOptions);
+        var venue = await ReadAsync<VenueDto>(venueResponse);
+        Assert.NotNull(venue);
+
+        var createResponse = await Client.PostAsJsonAsync(
+            "/events", new CreateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), 2, venue.Id), JsonOptions);
+        var created = await ReadAsync<EventDto>(createResponse);
+        Assert.NotNull(created);
+
+        await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(created.Id), JsonOptions);
+        await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(created.Id), JsonOptions);
+
+        var updateDto = new UpdateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), 1, venue.Id);
+        var putResponse = await Client.PutAsJsonAsync($"/events/{created.Id}", updateDto, JsonOptions);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, putResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task Put_Returns404_WhenEventDoesNotExist()
     {
         var updateDto = new UpdateEventDto(

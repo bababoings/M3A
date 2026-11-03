@@ -51,22 +51,6 @@ namespace M3A.Repositories.Migrations
                     b.ToTable("events", (string)null);
                 });
 
-            modelBuilder.Entity("M3A.Domain.Entities.Item", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("items", (string)null);
-                });
-
             modelBuilder.Entity("M3A.Domain.Entities.Ticket", b =>
                 {
                     b.Property<string>("Id")

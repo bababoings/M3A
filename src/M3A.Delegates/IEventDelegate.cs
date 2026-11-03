@@ -27,7 +27,7 @@ public interface IEventDelegate
 
     /// <summary>Replaces every mutable field of an existing event.</summary>
     /// <exception cref="EntityNotFoundException">No event has the given <paramref name="id"/> or no venue has the given <paramref name="venueId"/>.</exception>
-    /// <exception cref="BusinessRuleViolationException">Capacity is not positive or capacity exceeds venue capacity.</exception>
+    /// <exception cref="BusinessRuleViolationException">Capacity is not positive, exceeds venue capacity, or is lower than the number of tickets already issued.</exception>
     Task<Event> UpdateAsync(
         string id,
         string name,

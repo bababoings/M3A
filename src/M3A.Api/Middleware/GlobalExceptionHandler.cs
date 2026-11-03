@@ -50,6 +50,14 @@ public sealed class GlobalExceptionHandler(
             Title = ProblemTitles.ValidationFailed,
             Status = StatusCodes.Status400BadRequest,
         },
+        // Unreadable bodies (malformed JSON, wrong content type). Minimal APIs only throw these
+        // in Development (ThrowOnBadRequest); elsewhere they answer 400 without reaching here.
+        BadHttpRequestException badRequest => new ProblemDetails
+        {
+            Title = ProblemTitles.BadRequest,
+            Detail = badRequest.Message,
+            Status = badRequest.StatusCode,
+        },
         EntityNotFoundException notFound => new ProblemDetails
         {
             Title = ProblemTitles.NotFound,

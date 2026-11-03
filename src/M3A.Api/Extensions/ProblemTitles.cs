@@ -6,6 +6,9 @@ public static class ProblemTitles
     /// <summary>Request failed validation (HTTP 400).</summary>
     public const string ValidationFailed = "Validation Failed";
 
+    /// <summary>Request body could not be read, e.g. malformed JSON (HTTP 400).</summary>
+    public const string BadRequest = "Bad Request";
+
     /// <summary>Resource does not exist (HTTP 404).</summary>
     public const string NotFound = "Resource Not Found";
 

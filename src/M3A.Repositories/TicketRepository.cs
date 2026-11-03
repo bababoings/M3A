@@ -20,6 +20,10 @@ public sealed class TicketRepository(M3ADbContext dbContext) : ITicketRepository
     public Task<bool> ExistsForEventAsync(string eventId, CancellationToken cancellationToken = default) =>
         dbContext.Tickets.AnyAsync(ticket => ticket.EventId == eventId, cancellationToken);
 
+    /// <inheritdoc />
+    public Task<int> CountForEventAsync(string eventId, CancellationToken cancellationToken = default) =>
+        dbContext.Tickets.CountAsync(ticket => ticket.EventId == eventId, cancellationToken);
+
     public async Task AddAsync(Ticket entity, CancellationToken cancellationToken = default)
     {
         await dbContext.Tickets.AddAsync(entity, cancellationToken);

@@ -24,8 +24,8 @@ public class TicketDelegateTests
     public async Task CreateAsync_Throws_WhenEventDoesNotExist()
     {
         _eventRepoMock
-            .Setup(repo => repo.ExistsAsync("missing", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+            .Setup(repo => repo.GetByIdAsync("missing", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Event?)null);
 
         var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
             () => _delegate.CreateAsync("missing"));
@@ -40,11 +40,9 @@ public class TicketDelegateTests
     }
 
     [Fact]
-    public async Task CreateAsync_AssignsIdAndPersists_WhenEventExists()
+    public async Task CreateAsync_AssignsIdAndPersists_WhenEventHasCapacityLeft()
     {
-        _eventRepoMock
-            .Setup(repo => repo.ExistsAsync("event-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        ExpectEvent(new EventBuilder().WithId("event-1").WithEventCapacity(2).Build(), issued: 1);
 
         Ticket? persisted = null;
         _ticketRepoMock
@@ -59,6 +57,23 @@ public class TicketDelegateTests
         Assert.Equal("event-1", result.EventId);
         Assert.True(Domain.ValueObjects.ResourceId.IsValid(result.Id));
         Assert.Equal(Domain.Enums.TicketStatus.Issued, result.Status);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]  // capacity of one, already taken
+    [InlineData(3, 3)]  // exactly full
+    [InlineData(2, 5)]  // already over, e.g. capacity lowered after issuing
+    public async Task CreateAsync_Throws_WhenEventIsAtCapacity(int capacity, int issued)
+    {
+        ExpectEvent(new EventBuilder().WithId("event-1").WithEventCapacity(capacity).Build(), issued);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleViolationException>(
+            () => _delegate.CreateAsync("event-1"));
+
+        Assert.Contains("sold out", exception.Message, StringComparison.Ordinal);
+        _ticketRepoMock.Verify(
+            repo => repo.AddAsync(It.IsAny<Ticket>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // ---- Status transitions -------------------------------------------------
@@ -151,6 +166,16 @@ public class TicketDelegateTests
 
         Assert.Equal(nameof(Ticket), exception.EntityName);
         Assert.Equal("missing", exception.Id);
+    }
+
+    private void ExpectEvent(Event @event, int issued)
+    {
+        _eventRepoMock
+            .Setup(repo => repo.GetByIdAsync(@event.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(@event);
+        _ticketRepoMock
+            .Setup(repo => repo.CountForEventAsync(@event.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(issued);
     }
 
     private void ExpectLookup(Ticket ticket) =>

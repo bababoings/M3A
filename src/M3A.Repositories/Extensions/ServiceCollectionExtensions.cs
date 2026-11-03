@@ -33,7 +33,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddRepositoryImplementations(this IServiceCollection services)
     {
-        services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IVenueRepository, VenueRepository>();
         services.AddScoped<IEventRepository, EventRepository>();

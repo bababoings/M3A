@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M3A API Test Console</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #fff; --ink: #1d2330; --muted: #6b7280; --line: #e3e6eb;
+    --accent: #2f5bea; --ok: #1a7f4b; --ok-bg: #e6f4ec; --warn: #9a5b00; --warn-bg: #fdf1dc;
+    --bad: #b42318; --bad-bg: #fde8e6; --info-bg: #e9eefc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 16px; margin: 0; }
+  .status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.up { background: var(--ok); } .dot.down { background: var(--bad); }
+  header .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr); gap: 16px; padding: 16px 20px; align-items: start; }
+  .resources { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  section.panel h2 { font-size: 14px; margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; }
+  .count { color: var(--muted); font-weight: 400; }
+  form { display: grid; gap: 6px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  label { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+  input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; width: 100%; }
+  button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  button:hover { border-color: #c4c9d2; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.small { font-size: 12px; padding: 2px 8px; }
+  button.danger { color: var(--bad); }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .list { display: grid; gap: 8px; max-height: 520px; overflow: auto; }
+  .card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--info-bg); }
+  .card .title { font-weight: 600; cursor: pointer; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin: 6px 0 2px; }
+  .bar > span { display: block; height: 100%; background: var(--ok); }
+  .bar.full > span { background: var(--bad); }
+  .chip { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .chip.Issued { background: var(--info-bg); color: var(--accent); }
+  .chip.Purchased { background: var(--ok-bg); color: var(--ok); }
+  .chip.Redeemed { background: #eee; color: var(--muted); }
+  .rel { margin-top: 4px; font-size: 12px; }
+  .rel a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+  .side { display: grid; gap: 16px; position: sticky; top: 64px; }
+  .scenarios { display: grid; gap: 6px; }
+  .scenario { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .scenario .exp { font-size: 11px; color: var(--muted); }
+  .result { font-size: 11px; font-weight: 700; min-width: 54px; text-align: right; }
+  .result.pass { color: var(--ok); } .result.fail { color: var(--bad); }
+  .log { display: grid; gap: 6px; max-height: 460px; overflow: auto; }
+  .entry { border: 1px solid var(--line); border-left-width: 4px; border-radius: 6px; padding: 6px 8px; }
+  .entry.s2 { border-left-color: var(--ok); } .entry.s4 { border-left-color: #e0a100; }
+  .entry.s422 { border-left-color: #e2711d; } .entry.s5 { border-left-color: var(--bad); }
+  .entry .head { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .method { font-weight: 700; font-size: 11px; width: 50px; }
+  .code { font-weight: 700; font-size: 12px; padding: 0 6px; border-radius: 4px; }
+  .s2 .code { background: var(--ok-bg); color: var(--ok); } .s4 .code { background: var(--warn-bg); color: var(--warn); }
+  .s422 .code { background: #fde6d4; color: #a3460c; } .s5 .code { background: var(--bad-bg); color: var(--bad); }
+  .problem { margin-top: 4px; font-size: 12px; }
+  .problem b { display: block; }
+  .problem ul { margin: 2px 0 0; padding-left: 18px; }
+  .entry pre { margin: 6px 0 0; padding: 6px; background: #f7f8fa; border-radius: 4px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .entry .detail { display: none; } .entry.open .detail { display: block; }
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 1300px) { main { grid-template-columns: 1fr; } .side { position: static; } }
+  @media (max-width: 900px) { .resources { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>M3A API Test Console</h1>
+  <span class="status"><span class="dot" id="apiDot"></span><span id="apiStatus">checking…</span></span>
+  <span class="spacer"></span>
+  <button id="seedBtn">Seed sample data</button>
+  <button id="refreshBtn">Refresh</button>
+</header>
+
+<main>
+  <div class="resources">
+    <!-- Venues -->
+    <section class="panel">
+      <h2>Venues <span class="count" id="venueCount"></span></h2>
+      <form id="venueForm">
+        <input type="hidden" name="id">
+        <label>Location <input name="location" placeholder="Foro Sol, CDMX"></label>
+        <label>Capacity <input name="capacity" type="number" placeholder="65000"></label>
+        <div class="row">
+          <button class="primary" type="submit" data-label="Create venue">Create venue</button>
+          <button type="button" class="cancel" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <div class="list" id="venueList"></div>
+    </section>
+
+    <!-- Events -->
+    <section class="panel">
+      <h2>Events <span class="count" id="eventCount"></span></h2>
+      <form id="eventForm">
+        <input type="hidden" name="id">
+        <label>Name <input name="name" placeholder="Concert"></label>
+        <label>Date &amp; time <input name="dateTime" type="datetime-local"></label>
+        <label>Capacity <input name="eventCapacity" type="number" placeholder="100"></label>
+        <label>Venue <select name="venueId"></select></label>
+        <div class="row">
+          <button class="primary" type="submit" data-label="Create event">Create event</button>
+          <button type="button" class="cancel" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <div class="list" id="eventList"></div>
+    </section>
+
+    <!-- Tickets -->
+    <section class="panel">
+      <h2>Tickets <span class="count" id="ticketCount"></span></h2>
+      <form id="ticketForm">
+        <label>Event <select name="eventId"></select></label>
+        <div class="row"><button class="primary" type="submit">Issue ticket</button></div>
+      </form>
+      <div class="list" id="ticketList"></div>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="panel">
+      <h2>Error scenarios <button class="small" id="runAllBtn">Run all</button></h2>
+      <div class="meta" style="margin-bottom:8px">Each scenario sets up its own data, triggers the error, then cleans up after itself.</div>
+      <div class="scenarios" id="scenarioList"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Request log <button class="small" id="clearLogBtn">Clear</button></h2>
+      <div class="log" id="log"><div class="empty">Requests appear here. Click one to see its body.</div></div>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const state = { venues: [], events: [], tickets: [], selected: null };
+
+// ---- HTTP + log ---------------------------------------------------------------
+
+/** Calls the API through the local proxy and records the exchange in the log. */
+async function api(method, path, body, { raw = false, quiet = false } = {}) {
+  const started = performance.now();
+  const init = { method, headers: {} };
+  if (body !== undefined) {
+    init.headers['Content-Type'] = 'application/json';
+    init.body = raw ? body : JSON.stringify(body);
+  }
+
+  let status = 0, data = null, text = '';
+  try {
+    const res = await fetch('/api' + path, init);
+    status = res.status;
+    text = await res.text();
+    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  } catch (err) {
+    data = { title: 'Network error', detail: String(err) };
+  }
+
+  const result = { status, ok: status >= 200 && status < 300, data };
+  if (!quiet) logEntry(method, path, init.body, result, Math.round(performance.now() - started));
+  return result;
+}
+
+function statusClass(status) {
+  if (status === 422) return 's422';
+  if (status >= 500 || status === 0) return 's5';
+  if (status >= 400) return 's4';
+  return 's2';
+}
+
+function problemHtml(data) {
+  if (!data || typeof data !== 'object' || !data.title) return '';
+  const errors = data.errors
+    ? '<ul>' + Object.entries(data.errors).map(([k, v]) => `<li><b style="display:inline">${esc(k)}</b>: ${esc([].concat(v).join(' '))}</li>`).join('') + '</ul>'
+    : '';
+  return `<div class="problem"><b>${esc(data.title)}</b>${data.detail ? esc(data.detail) : ''}${errors}</div>`;
+}
+
+function logEntry(method, path, reqBody, { status, data }, ms) {
+  const log = $('#log');
+  $('.empty', log)?.remove();
+  const el = document.createElement('div');
+  el.className = `entry ${statusClass(status)}`;
+  el.innerHTML = `
+    <div class="head"><span class="method">${method}</span><span class="mono" style="flex:1">${esc(path)}</span>
+      <span class="code">${status || 'ERR'}</span><span class="meta">${ms} ms</span></div>
+    ${status >= 400 || status === 0 ? problemHtml(data) : ''}
+    <div class="detail">
+      ${reqBody ? `<div class="meta">Request</div><pre class="mono">${esc(pretty(reqBody))}</pre>` : ''}
+      <div class="meta">Response</div><pre class="mono">${esc(data === null ? '(no body)' : typeof data === 'string' ? data : JSON.stringify(data, null, 2))}</pre>
+    </div>`;
+  $('.head', el).onclick = () => el.classList.toggle('open');
+  log.prepend(el);
+}
+
+function pretty(body) {
+  try { return JSON.stringify(JSON.parse(body), null, 2); } catch { return body; }
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/** Toasts the outcome of a user action; errors show the ProblemDetails title/detail. */
+function report(res, success) {
+  if (res.ok) toast(success);
+  else toast(`${res.status} ${res.data?.title ?? 'Error'}${res.data?.detail ? ': ' + res.data.detail : ''}`);
+  return res.ok;
+}
+
+// ---- Data + rendering -------------------------------------------------------------
+
+async function refresh() {
+  const [v, e, t] = await Promise.all([api('GET', '/venues', undefined, { quiet: true }), api('GET', '/events', undefined, { quiet: true }), api('GET', '/tickets', undefined, { quiet: true })]);
+  const up = v.ok && e.ok && t.ok;
+  $('#apiDot').className = 'dot ' + (up ? 'up' : 'down');
+  $('#apiStatus').textContent = up ? 'API connected' : `API error (${[v, e, t].find((r) => !r.ok).status}) — see log`;
+  if (!up) logEntry('GET', '/venues · /events · /tickets', null, [v, e, t].find((r) => !r.ok), 0);
+
+  state.venues = v.ok ? v.data : [];
+  state.events = e.ok ? e.data.sort((a, b) => a.dateTime.localeCompare(b.dateTime)) : [];
+  state.tickets = t.ok ? t.data : [];
+  render();
+}
+
+const venueById = (id) => state.venues.find((v) => v.id === id);
+const eventById = (id) => state.events.find((e) => e.id === id);
+const ticketsFor = (eventId) => state.tickets.filter((t) => t.eventId === eventId);
+const eventsAt = (venueId) => state.events.filter((e) => e.venueId === venueId);
+const fmtDate = (iso) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const shortId = (id) => id.slice(0, 8);
+const isSelected = (kind, id) => state.selected?.kind === kind && state.selected.id === id;
+
+/** Selecting a card highlights it and everything related to it in the other columns. */
+function related(kind, id) {
+  const s = state.selected;
+  if (!s) return false;
+  if (s.kind === 'venue') return (kind === 'event' && eventById(id)?.venueId === s.id) || (kind === 'ticket' && eventById(state.tickets.find((t) => t.id === id)?.eventId)?.venueId === s.id);
+  if (s.kind === 'event') return (kind === 'venue' && eventById(s.id)?.venueId === id) || (kind === 'ticket' && state.tickets.find((t) => t.id === id)?.eventId === s.id);
+  if (s.kind === 'ticket') {
+    const ev = eventById(state.tickets.find((t) => t.id === s.id)?.eventId);
+    return (kind === 'event' && ev?.id === id) || (kind === 'venue' && ev?.venueId === id);
+  }
+  return false;
+}
+
+function render() {
+  const { venues, events, tickets } = state;
+  $('#venueCount').textContent = venues.length;
+  $('#eventCount').textContent = events.length;
+  $('#ticketCount').textContent = tickets.length;
+
+  $('#venueList').innerHTML = venues.length ? venues.map((v) => {
+    const evs = eventsAt(v.id);
+    return `<div class="card ${isSelected('venue', v.id) || related('venue', v.id) ? 'selected' : ''}">
+      <div class="title" data-select="venue:${v.id}">${esc(v.location)}</div>
+      <div class="meta">Capacity ${v.capacity.toLocaleString()} · <span class="mono">${shortId(v.id)}</span></div>
+      <div class="rel">${evs.length ? `Hosts ${evs.length} event${evs.length > 1 ? 's' : ''}: ` + evs.map((e) => `<a data-select="event:${e.id}">${esc(e.name)}</a>`).join(', ') : '<span class="meta">No events</span>'}</div>
+      <div class="row" style="margin-top:6px">
+        <button class="small" data-edit-venue="${v.id}">Edit</button>
+        <button class="small danger" data-del="venues:${v.id}">Delete</button>
+      </div></div>`;
+  }).join('') : '<div class="empty">No venues yet.</div>';
+
+  $('#eventList').innerHTML = events.length ? events.map((e) => {
+    const issued = ticketsFor(e.id).length, pct = Math.min(100, (issued / e.eventCapacity) * 100), full = issued >= e.eventCapacity;
+    const venue = e.venue ?? venueById(e.venueId);
+    return `<div class="card ${isSelected('event', e.id) || related('event', e.id) ? 'selected' : ''}">
+      <div class="title" data-select="event:${e.id}">${esc(e.name)}</div>
+      <div class="meta">${fmtDate(e.dateTime)} · <span class="mono">${shortId(e.id)}</span></div>
+      <div class="rel">At <a data-select="venue:${e.venueId}">${esc(venue?.location ?? e.venueId)}</a></div>
+      <div class="bar ${full ? 'full' : ''}"><span style="width:${pct}%"></span></div>
+      <div class="meta">${issued} / ${e.eventCapacity} tickets issued${full ? ' · <b style="color:var(--bad)">sold out</b>' : ''}</div>
+      <div class="row" style="margin-top:6px">
+        <button class="small" data-issue="${e.id}" ${full ? 'title="Full — try it anyway to see the 422"' : ''}>Issue ticket</button>
+        <button class="small" data-edit-event="${e.id}">Edit</button>
+        <button class="small danger" data-del="events:${e.id}">Delete</button>
+      </div></div>`;
+  }).join('') : '<div class="empty">No events yet.</div>';
+
+  $('#ticketList').innerHTML = tickets.length ? tickets.map((t) => {
+    const ev = eventById(t.eventId);
+    return `<div class="card ${isSelected('ticket', t.id) || related('ticket', t.id) ? 'selected' : ''}">
+      <div class="title mono" data-select="ticket:${t.id}">${shortId(t.id)} <span class="chip ${t.status}">${t.status}</span></div>
+      <div class="rel">For <a data-select="event:${t.eventId}">${esc(ev?.name ?? t.eventId)}</a></div>
+      <div class="row" style="margin-top:6px">
+        <button class="small" data-act="purchase:${t.id}" ${t.status !== 'Issued' ? 'title="Not Issued — try it anyway to see the 422"' : ''}>Purchase</button>
+        <button class="small" data-act="redeem:${t.id}" ${t.status !== 'Purchased' ? 'title="Not Purchased — try it anyway to see the 422"' : ''}>Redeem</button>
+        <button class="small danger" data-del="tickets:${t.id}">Delete</button>
+      </div></div>`;
+  }).join('') : '<div class="empty">No tickets yet.</div>';
+
+  fillSelect($('#eventForm [name=venueId]'), venues, (v) => `${v.location} (cap ${v.capacity})`);
+  fillSelect($('#ticketForm [name=eventId]'), events, (e) => `${e.name} — ${ticketsFor(e.id).length}/${e.eventCapacity}`);
+}
+
+function fillSelect(select, items, label) {
+  const current = select.value;
+  select.innerHTML = items.length ? items.map((i) => `<option value="${i.id}">${esc(label(i))}</option>`).join('') : '<option value="">— none —</option>';
+  if (items.some((i) => i.id === current)) select.value = current;
+}
+
+// ---- Actions --------------------------------------------------------------------
+
+document.addEventListener('click', async (ev) => {
+  const t = ev.target.closest('[data-select],[data-del],[data-act],[data-issue],[data-edit-venue],[data-edit-event]');
+  if (!t) return;
+  const d = t.dataset;
+
+  if (d.select) {
+    const [kind, id] = d.select.split(':');
+    state.selected = isSelected(kind, id) ? null : { kind, id };
+    return render();
+  }
+  if (d.del) {
+    const [resource, id] = d.del.split(':');
+    report(await api('DELETE', `/${resource}/${id}`), 'Deleted');
+  } else if (d.act) {
+    const [action, id] = d.act.split(':');
+    report(await api('POST', `/tickets/${id}/${action}`), `Ticket ${action === 'purchase' ? 'purchased' : 'redeemed'}`);
+  } else if (d.issue) {
+    report(await api('POST', '/tickets', { eventId: d.issue }), 'Ticket issued');
+  } else if (d.editVenue) {
+    const v = venueById(d.editVenue);
+    return startEdit($('#venueForm'), { id: v.id, location: v.location, capacity: v.capacity }, 'Save venue');
+  } else if (d.editEvent) {
+    const e = eventById(d.editEvent);
+    return startEdit($('#eventForm'), { id: e.id, name: e.name, dateTime: toLocalInput(e.dateTime), eventCapacity: e.eventCapacity, venueId: e.venueId }, 'Save event');
+  }
+  refresh();
+});
+
+function startEdit(form, values, label) {
+  for (const [k, v] of Object.entries(values)) form.elements[k].value = v;
+  $('[type=submit]', form).textContent = label;
+  $('.cancel', form).hidden = false;
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function endEdit(form) {
+  form.reset();
+  form.elements.id.value = '';
+  const submit = $('[type=submit]', form);
+  submit.textContent = submit.dataset.label;
+  $('.cancel', form).hidden = true;
+}
+
+for (const form of [$('#venueForm'), $('#eventForm')]) $('.cancel', form).onclick = () => endEdit(form);
+
+const toLocalInput = (iso) => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const num = (v) => (v === '' ? 0 : Number(v));
+
+$('#venueForm').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const f = ev.target.elements, id = f.id.value;
+  const body = { location: f.location.value, capacity: num(f.capacity.value) };
+  const res = await api(id ? 'PUT' : 'POST', id ? `/venues/${id}` : '/venues', body);
+  if (report(res, id ? 'Venue updated' : 'Venue created')) endEdit(ev.target);
+  refresh();
+};
+
+$('#eventForm').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const f = ev.target.elements, id = f.id.value;
+  // An empty date is sent as-is so the API's validation error is visible rather than hidden by the UI.
+  const body = { name: f.name.value, dateTime: f.dateTime.value ? new Date(f.dateTime.value).toISOString() : null, eventCapacity: num(f.eventCapacity.value), venueId: f.venueId.value };
+  const res = await api(id ? 'PUT' : 'POST', id ? `/events/${id}` : '/events', body);
+  if (report(res, id ? 'Event updated' : 'Event created')) endEdit(ev.target);
+  refresh();
+};
+
+$('#ticketForm').onsubmit = async (ev) => {
+  ev.preventDefault();
+  report(await api('POST', '/tickets', { eventId: ev.target.elements.eventId.value }), 'Ticket issued');
+  refresh();
+};
+
+$('#refreshBtn').onclick = refresh;
+$('#clearLogBtn').onclick = () => { $('#log').innerHTML = '<div class="empty">Log cleared.</div>'; };
+
+const inDays = (n) => new Date(Date.now() + n * 864e5).toISOString();
+
+$('#seedBtn').onclick = async () => {
+  const arena = (await api('POST', '/venues', { location: 'Arena CDMX', capacity: 22000 })).data;
+  const club = (await api('POST', '/venues', { location: 'Foro Indie Rocks', capacity: 650 })).data;
+  if (!arena?.id || !club?.id) return refresh();
+  const tour = (await api('POST', '/events', { name: 'Stadium Tour', dateTime: inDays(30), eventCapacity: 5, venueId: arena.id })).data;
+  const show = (await api('POST', '/events', { name: 'Acoustic Night', dateTime: inDays(10), eventCapacity: 2, venueId: club.id })).data;
+  const t1 = (await api('POST', '/tickets', { eventId: tour.id })).data;
+  const t2 = (await api('POST', '/tickets', { eventId: tour.id })).data;
+  await api('POST', '/tickets', { eventId: show.id });
+  await api('POST', `/tickets/${t1.id}/purchase`);
+  await api('POST', `/tickets/${t2.id}/purchase`);
+  await api('POST', `/tickets/${t2.id}/redeem`);
+  toast('Sample data created');
+  refresh();
+};
+
+// ---- Error scenarios --------------------------------------------------------------
+
+/** Creates throwaway data for a scenario and records it for cleanup (reverse order). */
+function fixture() {
+  const created = [];
+  return {
+    async venue(capacity = 100) { const r = await api('POST', '/venues', { location: 'Scenario venue', capacity }); created.push(`/venues/${r.data.id}`); return r.data; },
+    async event(venueId, eventCapacity = 10) { const r = await api('POST', '/events', { name: 'Scenario event', dateTime: inDays(7), eventCapacity, venueId }); created.push(`/events/${r.data.id}`); return r.data; },
+    async ticket(eventId) { const r = await api('POST', '/tickets', { eventId }); created.push(`/tickets/${r.data.id}`); return r.data; },
+    track(res, resource) { if (res.ok && res.data?.id) created.push(`/${resource}/${res.data.id}`); return res; },
+    async cleanup() { for (const path of created.reverse()) await api('DELETE', path, undefined, { quiet: true }); },
+  };
+}
+
+const scenarios = [
+  { name: 'Validation: venue with empty location', expect: 400,
+    run: async (fx) => fx.track(await api('POST', '/venues', { location: '', capacity: 0 }), 'venues') },
+  { name: 'Malformed JSON body', expect: 400,
+    run: () => api('POST', '/venues', '{ "location": "oops"', { raw: true }) },
+  { name: 'Invalid id format', expect: 400,
+    run: () => api('GET', '/events/not_a%20valid_id') },
+  { name: 'Event in the past', expect: 400,
+    run: async (fx) => { const v = await fx.venue(); return fx.track(await api('POST', '/events', { name: 'Yesterday', dateTime: inDays(-1), eventCapacity: 10, venueId: v.id }), 'events'); } },
+  { name: 'Unknown event (well-formed id)', expect: 404,
+    run: () => api('GET', '/events/does-not-exist') },
+  { name: 'Ticket for an unknown event', expect: 404,
+    run: async (fx) => fx.track(await api('POST', '/tickets', { eventId: 'does-not-exist' }), 'tickets') },
+  { name: 'Event capacity above venue capacity', expect: 422,
+    run: async (fx) => { const v = await fx.venue(50); return fx.track(await api('POST', '/events', { name: 'Too big', dateTime: inDays(7), eventCapacity: 51, venueId: v.id }), 'events'); } },
+  { name: 'Sold out: 2nd ticket on capacity-1 event', expect: 422,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id, 1); await fx.ticket(e.id); return fx.track(await api('POST', '/tickets', { eventId: e.id }), 'tickets'); } },
+  { name: 'Lower capacity below issued tickets', expect: 422,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id, 3); await fx.ticket(e.id); await fx.ticket(e.id);
+      return api('PUT', `/events/${e.id}`, { name: e.name, dateTime: e.dateTime, eventCapacity: 1, venueId: v.id }); } },
+  { name: 'Purchase a ticket twice', expect: 422,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id); const t = await fx.ticket(e.id); await api('POST', `/tickets/${t.id}/purchase`); return api('POST', `/tickets/${t.id}/purchase`); } },
+  { name: 'Redeem before purchase', expect: 422,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id); const t = await fx.ticket(e.id); return api('POST', `/tickets/${t.id}/redeem`); } },
+  { name: 'Delete an event that has tickets', expect: 422,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id); await fx.ticket(e.id); return api('DELETE', `/events/${e.id}`); } },
+  { name: 'Delete the same ticket twice', expect: 404,
+    run: async (fx) => { const v = await fx.venue(); const e = await fx.event(v.id); const t = (await api('POST', '/tickets', { eventId: e.id })).data;
+      await api('DELETE', `/tickets/${t.id}`); return api('DELETE', `/tickets/${t.id}`); } },
+];
+
+$('#scenarioList').innerHTML = scenarios.map((s, i) => `
+  <div class="scenario"><div>${esc(s.name)}<div class="exp">expects ${s.expect}</div></div>
+  <span class="result" id="res${i}"></span><button class="small" data-run="${i}">Run</button></div>`).join('');
+
+async function runScenario(i) {
+  const s = scenarios[i], out = $('#res' + i), fx = fixture();
+  out.className = 'result'; out.textContent = '…';
+  let res;
+  try { res = await s.run(fx); } catch (err) { res = { status: 0, data: { title: 'Scenario setup failed', detail: String(err) } }; }
+  finally { await fx.cleanup(); }
+  const pass = res.status === s.expect;
+  out.className = 'result ' + (pass ? 'pass' : 'fail');
+  out.textContent = `${res.status || 'ERR'} ${pass ? '✓' : '✗'}`;
+  return pass;
+}
+
+$('#scenarioList').onclick = async (ev) => {
+  const i = ev.target.dataset.run;
+  if (i === undefined) return;
+  ev.target.disabled = true;
+  await runScenario(Number(i));
+  ev.target.disabled = false;
+  refresh();
+};
+
+$('#runAllBtn').onclick = async (ev) => {
+  ev.target.disabled = true;
+  let passed = 0;
+  for (let i = 0; i < scenarios.length; i++) if (await runScenario(i)) passed++;
+  ev.target.disabled = false;
+  toast(`${passed} / ${scenarios.length} scenarios returned the expected status`);
+  refresh();
+};
+
+refresh();
+</script>
+</body>

@@ -21,9 +21,15 @@ public sealed class TicketDelegate(
     {
         // Checked here so an unknown event is a 404 rather than the database's foreign key
         // violation surfacing as a 500.
-        if (!await eventRepository.ExistsAsync(eventId, cancellationToken))
+        var @event = await eventRepository.GetByIdAsync(eventId, cancellationToken)
+            ?? throw new EntityNotFoundException(nameof(Event), eventId);
+
+        // Every ticket, whatever its status, holds a place at the event.
+        var issued = await ticketRepository.CountForEventAsync(eventId, cancellationToken);
+        if (issued >= @event.EventCapacity)
         {
-            throw new EntityNotFoundException(nameof(Event), eventId);
+            throw new BusinessRuleViolationException(
+                $"Event '{eventId}' is sold out: all {@event.EventCapacity} tickets have been issued.");
         }
 
         var ticket = new Ticket { Id = ResourceId.New(), EventId = eventId, Status = TicketStatus.Issued };

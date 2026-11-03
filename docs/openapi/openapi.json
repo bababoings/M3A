@@ -11,221 +11,6 @@
         }
     ],
     "paths": {
-        "/items": {
-            "get": {
-                "tags": [
-                    "Items"
-                ],
-                "summary": "List all items",
-                "operationId": "GetItems",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/ItemDto"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Items"
-                ],
-                "summary": "Create a new item",
-                "operationId": "CreateItem",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CreateItemDto"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                                }
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ItemDto"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/items/{itemId}": {
-            "get": {
-                "tags": [
-                    "Items"
-                ],
-                "summary": "Get an item by id",
-                "operationId": "GetItemById",
-                "parameters": [
-                    {
-                        "name": "itemId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ItemDto"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Items"
-                ],
-                "summary": "Replace an existing item",
-                "operationId": "UpdateItem",
-                "parameters": [
-                    {
-                        "name": "itemId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateItemDto"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                                }
-                            }
-                        }
-                    },
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ItemDto"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Items"
-                ],
-                "summary": "Delete an item",
-                "operationId": "DeleteItem",
-                "parameters": [
-                    {
-                        "name": "itemId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/problem+json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ProblemDetails"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/tickets": {
             "get": {
                 "tags": [
@@ -288,6 +73,16 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/problem+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProblemDetails"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
                         "content": {
                             "application/problem+json": {
                                 "schema": {
@@ -1031,19 +826,6 @@
                 },
                 "description": "Payload for `POST /events`."
             },
-            "CreateItemDto": {
-                "required": [
-                    "name"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Human readable name."
-                    }
-                },
-                "description": "Payload for `POST /items`."
-            },
             "CreateTicketDto": {
                 "required": [
                     "eventId"
@@ -1177,24 +959,6 @@
                     }
                 }
             },
-            "ItemDto": {
-                "required": [
-                    "id",
-                    "name"
-                ],
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "Resource identifier."
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "Human readable name."
-                    }
-                },
-                "description": "Representation of an item returned by the API."
-            },
             "ProblemDetails": {
                 "type": "object",
                 "properties": {
@@ -1295,19 +1059,6 @@
                 },
                 "description": "Payload for `PUT /events/{eventId}`."
             },
-            "UpdateItemDto": {
-                "required": [
-                    "name"
-                ],
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Human readable name."
-                    }
-                },
-                "description": "Payload for `PUT /items/{itemId}`."
-            },
             "UpdateVenueDto": {
                 "required": [
                     "location",
@@ -1362,9 +1113,6 @@
         }
     },
     "tags": [
-        {
-            "name": "Items"
-        },
         {
             "name": "Tickets"
         },

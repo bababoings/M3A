@@ -8,8 +8,7 @@
 - **Content-Type**: `application/json`
 - **ID Format**: Regex `[A-Za-z0-9\-]+` — defined once in `Domain.ValueObjects.ResourceId.Pattern`
 - **Persistence**: EF Core 10 + Npgsql (PostgreSQL)
-- **Resources**: `Venues`, `Events`, `Tickets`, plus `Items` (the reference resource that
-  demonstrates the pattern; it carries no business meaning)
+- **Resources**: `Venues`, `Events`, `Tickets`
 
 Domain in one line: a **Venue** has a capacity; an **Event** is scheduled at a venue and cannot
 allocate more capacity than the venue holds; a **Ticket** is issued for an event and moves
@@ -54,7 +53,7 @@ allocate more capacity than the venue holds; a **Ticket** is issued for an event
 ┌─────────────────────────────────────────────────────────────┐
 │                        Domain Models                        │
 │  M3A.Domain                                                 │
-│  • Entities/     — Venue, Event, Ticket, Item, IEntity      │
+│  • Entities/     — Venue, Event, Ticket, IEntity            │
 │  • Enums/        — TicketStatus                             │
 │  • ValueObjects/ — ResourceId                               │
 │  • Exceptions/   — DomainException hierarchy                │
@@ -160,21 +159,6 @@ are the only state changes and each rejects a ticket not in the expected source 
 There is no `PUT /tickets/{id}` — status is changed through the two action endpoints, not by
 replacing the resource.
 
-### Items (reference resource)
-
-| Method | Path | Request Body | Response | Description |
-|--------|------|--------------|----------|-------------|
-| `GET` | `/items` | - | `200` `ItemDto[]` | List all items |
-| `GET` | `/items/{itemId}` | - | `200` `ItemDto` \| `400` \| `404` | Get item by ID |
-| `POST` | `/items` | `CreateItemDto` | `201` + `Location` \| `400` | Create item |
-| `PUT` | `/items/{itemId}` | `UpdateItemDto` | `200` `ItemDto` \| `400` \| `404` | Full update |
-| `DELETE` | `/items/{itemId}` | - | `204` \| `400` \| `404` | Delete item |
-
-```json
-// ItemDto                          // CreateItemDto / UpdateItemDto
-{ "id": "string", "name": "string" }  { "name": "string" }
-```
-
 ### Conventions shared by every resource
 - Identifiers are **server-assigned** (`ResourceId.New()`), never supplied by the client.
 - `POST` returns the created DTO *and* a `Location: /{resource}/{id}` header.
@@ -272,9 +256,9 @@ plus a manual end-to-end run against real PostgreSQL (see [Verified end to end](
 ### Test Strategy Overview
 | Layer | Test Type | Framework | Coverage today |
 |-------|-----------|-----------|----------------|
-| API Routes | Integration | xUnit + `WebApplicationFactory` + EF Core InMemory | Every `/events`, `/venues`, `/items` endpoint; `/tickets` create and transitions |
-| Delegates | Unit | xUnit + Moq | `EventDelegate`, `VenueDelegate`, `ItemDelegate`, `TicketDelegate` |
-| Repositories | Unit | xUnit + EF Core InMemory | `EventRepository`, `VenueRepository`, `ItemRepository`, `ConnectionStringTemplate` |
+| API Routes | Integration | xUnit + `WebApplicationFactory` + EF Core InMemory | Every `/events`, `/venues` endpoint; `/tickets` create and transitions |
+| Delegates | Unit | xUnit + Moq | `EventDelegate`, `VenueDelegate`, `TicketDelegate` |
+| Repositories | Unit | xUnit + EF Core InMemory | `EventRepository`, `VenueRepository`, `ConnectionStringTemplate` |
 | Domain | Unit | xUnit | `ResourceId`, entity builders |
 
 
@@ -296,7 +280,6 @@ plus a manual end-to-end run against real PostgreSQL (see [Verified end to end](
 
 **Venues** (`Routes/VenueRoutesTests`) — the same nine shapes, with
 `Post_Returns400_WhenLocationIsEmpty` and `Post_Returns400_WhenCapacityIsNotPositive`.
-**Items** (`Routes/ItemRoutesTests`) — the same eight shapes for the reference resource.
 
 #### Cross-Cutting Tests (`Middleware/ValidationMiddlewareTests`)
 | Test | Assertion |
@@ -319,9 +302,6 @@ unknown event, an unknown venue and an over-limit capacity, and replaces fields 
 throws on non-positive capacity (theory: `0`, `-1`); `UpdateAsync` not-found, field replacement
 and capacity rule; `DeleteAsync` not-found.
 
-**`ItemDelegateTests`** — the minimal template: `GetById` not-found, `CreateAsync` persists,
-`UpdateAsync` found/not-found, `DeleteAsync` not-found.
-
 **`TicketDelegateTests`** — `CreateAsync` throws `EntityNotFoundException` for an unknown event
 and never reaches the ticket repository; `CreateAsync` assigns a valid ID and persists the ticket
 as `Issued` when the event exists.
@@ -339,16 +319,15 @@ theories over both actions for `404` (unknown ticket) and `400` (malformed id).
 
 #### Repository & Configuration Tests
 `EventRepositoryTests` covers the empty listing, an add/get round-trip that also asserts the venue
-is eager-loaded, `ExistsAsync`, and both delete paths; `VenueRepositoryTests` and
-`ItemRepositoryTests` mirror it. `ConnectionStringTemplateTests` covers substitution, strings with
+is eager-loaded, `ExistsAsync`, and both delete paths; `VenueRepositoryTests` mirrors
+it. `ConnectionStringTemplateTests` covers substitution, strings with
 no placeholders, an empty variable being treated as missing, and the error naming *every* missing
 variable. `DotEnvFileTests` (in the API suite) covers no-file, comments and blank lines, quote
 stripping and the `export` prefix, not overriding an already-set variable, and finding the file by
 walking up from a nested directory.
 
 ### Test Data Builders
-`tests/Shared/Builders/` holds fluent builders (`EventBuilder`, `VenueBuilder`, `TicketBuilder`,
-`ItemBuilder`)
+`tests/Shared/Builders/` holds fluent builders (`EventBuilder`, `VenueBuilder`, `TicketBuilder`)
 linked into every test project via a `<Compile Include="..\Shared\Builders\*.cs" />` item, so a
 test states only the fields it cares about:
 
@@ -376,8 +355,8 @@ M3A/
 │   ├── M3A.Api/
 │   │   ├── Program.cs                        # .env load → AddM3AApi → UseM3APipeline
 │   │   ├── Routes/                           # EventRoutes, VenueRoutes, TicketRoutes,
-│   │   │                                     #   ItemRoutes, RouteRegistration
-│   │   ├── Dtos/                             # EventDtos, VenueDtos, TicketDtos, ItemDtos
+│   │   │                                     #   RouteRegistration
+│   │   ├── Dtos/                             # EventDtos, VenueDtos, TicketDtos
 │   │   ├── Validators/                       # Create/Update validator per write DTO
 │   │   ├── Middleware/GlobalExceptionHandler.cs
 │   │   ├── Extensions/
@@ -387,14 +366,14 @@ M3A/
 │   │   │   ├── ResultExtensions.cs             # shared 400/404 shapes
 │   │   │   ├── ProblemTitles.cs
 │   │   │   ├── DotEnvFile.cs                   # .env loader
-│   │   │   └── {Event,Venue,Ticket,Item}Mappings.cs
+│   │   │   └── {Event,Venue,Ticket}Mappings.cs
 │   │   └── appsettings.json
 │   ├── M3A.Delegates/
-│   │   ├── I{Event,Venue,Ticket,Item}Delegate.cs + implementations
+│   │   ├── I{Event,Venue,Ticket}Delegate.cs + implementations
 │   │   └── Extensions/ServiceCollectionExtensions.cs
 │   ├── M3A.Repositories/
 │   │   ├── IRepository.cs                    # shared CRUD contract
-│   │   ├── I{Event,Venue,Ticket,Item}Repository.cs + implementations
+│   │   ├── I{Event,Venue,Ticket}Repository.cs + implementations
 │   │   ├── Persistence/
 │   │   │   ├── M3ADbContext.cs
 │   │   │   ├── ConnectionStringTemplate.cs    # ${VAR} expansion
@@ -402,19 +381,19 @@ M3A/
 │   │   ├── Migrations/
 │   │   └── Extensions/ServiceCollectionExtensions.cs
 │   └── M3A.Domain/
-│       ├── Entities/ (IEntity, Venue, Event, Ticket, Item)
+│       ├── Entities/ (IEntity, Venue, Event, Ticket)
 │       ├── Enums/TicketStatus.cs
 │       ├── ValueObjects/ResourceId.cs
 │       └── Exceptions/ (DomainException, EntityNotFound, BusinessRuleViolation)
 ├── tests/
 │   ├── M3A.Api.Tests/
-│   │   ├── Routes/ (Event, Venue, Item, Ticket)
+│   │   ├── Routes/ (Event, Venue, Ticket)
 │   │   ├── Middleware/ValidationMiddlewareTests.cs
 │   │   ├── Extensions/DotEnvFileTests.cs
 │   │   ├── M3AApiFactory.cs                  # swaps Npgsql → InMemory
 │   │   └── M3AApiTests.cs                    # base class: client + JSON options
-│   ├── M3A.Delegates.Tests/                  # Event, Venue, Item, Ticket
-│   ├── M3A.Repositories.Tests/               # Event, Venue, Item, ConnectionStringTemplate,
+│   ├── M3A.Delegates.Tests/                  # Event, Venue, Ticket
+│   ├── M3A.Repositories.Tests/               # Event, Venue, ConnectionStringTemplate,
 │   │                                         #   RepositoryTestBase
 │   ├── M3A.Domain.Tests/                     # Entities/, ValueObjects/
 │   └── Shared/Builders/                      # linked into each test project
@@ -480,6 +459,6 @@ with both migrations applied:
 | Event on an unknown venue | `404` |
 | Event with a past date | `400` |
 | Malformed resource id | `400` |
-| `GET /openapi/v1.json` | `200`, all 10 paths documented |
+| `GET /openapi/v1.json` | `200`, all 8 paths documented |
 
 No unhandled exceptions were logged during the run.

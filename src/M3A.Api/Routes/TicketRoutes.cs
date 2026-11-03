@@ -34,7 +34,8 @@ public static class TicketRoutes
             .WithSummary("Issue a new ticket for an event")
             .WithValidation<CreateTicketDto>()
             .Produces<TicketDto>(StatusCodes.Status201Created)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         group.MapDelete("/{ticketId}", DeleteAsync)
             .WithName("DeleteTicket")
