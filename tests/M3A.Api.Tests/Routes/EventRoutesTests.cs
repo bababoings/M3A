@@ -143,7 +143,7 @@ public class EventRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     [Fact]
-    public async Task Put_Returns422_WhenCapacityIsBelowIssuedTickets()
+    public async Task Put_Returns422_WhenCapacityIsBelowSoldTickets()
     {
         var venueResponse = await Client.PostAsJsonAsync(
             "/venues", new CreateVenueDto("Arena", 5000), JsonOptions);
@@ -155,8 +155,10 @@ public class EventRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
         var created = await ReadAsync<EventDto>(createResponse);
         Assert.NotNull(created);
 
-        await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(created.Id), JsonOptions);
-        await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(created.Id), JsonOptions);
+        foreach (var ticket in await TicketsForAsync(created.Id))
+        {
+            await Client.PostAsync($"/tickets/{ticket.Id}/purchase", null);
+        }
 
         var updateDto = new UpdateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), 1, venue.Id);
         var putResponse = await Client.PutAsJsonAsync($"/events/{created.Id}", updateDto, JsonOptions);
@@ -192,5 +194,83 @@ public class EventRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
 
         var second = await Client.DeleteAsync($"/events/{created.Id}");
         Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_ResizesTheUnsoldInventory_AndKeepsSoldTickets()
+    {
+        var venue = await CreateVenueAsync(5000);
+        var created = await CreateEventAsync(venue.Id, eventCapacity: 5);
+        var sold = (await TicketsForAsync(created.Id))[0];
+        await Client.PostAsync($"/tickets/{sold.Id}/purchase", null);
+
+        var grow = await Client.PutAsJsonAsync(
+            $"/events/{created.Id}",
+            new UpdateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), 8, venue.Id),
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.OK, grow.StatusCode);
+        Assert.Equal(8, (await TicketsForAsync(created.Id)).Count);
+
+        var shrink = await Client.PutAsJsonAsync(
+            $"/events/{created.Id}",
+            new UpdateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), 1, venue.Id),
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.OK, shrink.StatusCode);
+
+        var remaining = Assert.Single(await TicketsForAsync(created.Id));
+        Assert.Equal(sold.Id, remaining.Id);
+    }
+
+    [Fact]
+    public async Task Delete_RemovesUnsoldTickets()
+    {
+        var venue = await CreateVenueAsync(300);
+        var created = await CreateEventAsync(venue.Id, eventCapacity: 4);
+
+        var response = await Client.DeleteAsync($"/events/{created.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Empty(await TicketsForAsync(created.Id));
+    }
+
+    [Fact]
+    public async Task Delete_Returns422_WhenTicketsHaveBeenSold()
+    {
+        var venue = await CreateVenueAsync(300);
+        var created = await CreateEventAsync(venue.Id, eventCapacity: 2);
+        var ticket = (await TicketsForAsync(created.Id))[0];
+        await Client.PostAsync($"/tickets/{ticket.Id}/purchase", null);
+
+        var response = await Client.DeleteAsync($"/events/{created.Id}");
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(2, (await TicketsForAsync(created.Id)).Count);
+    }
+
+    private async Task<VenueDto> CreateVenueAsync(int capacity)
+    {
+        var response = await Client.PostAsJsonAsync(
+            "/venues", new CreateVenueDto("Arena", capacity), JsonOptions);
+        var venue = await ReadAsync<VenueDto>(response);
+        Assert.NotNull(venue);
+        return venue;
+    }
+
+    private async Task<EventDto> CreateEventAsync(string venueId, int eventCapacity)
+    {
+        var response = await Client.PostAsJsonAsync(
+            "/events",
+            new CreateEventDto("Original", DateTimeOffset.UtcNow.AddDays(1), eventCapacity, venueId),
+            JsonOptions);
+        var created = await ReadAsync<EventDto>(response);
+        Assert.NotNull(created);
+        return created;
+    }
+
+    private async Task<List<TicketDto>> TicketsForAsync(string eventId)
+    {
+        var all = await ReadAsync<List<TicketDto>>(await Client.GetAsync("/tickets"));
+        Assert.NotNull(all);
+        return all.Where(ticket => ticket.EventId == eventId).ToList();
     }
 }

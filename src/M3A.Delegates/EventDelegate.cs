@@ -1,4 +1,5 @@
 using M3A.Domain.Entities;
+using M3A.Domain.Enums;
 using M3A.Domain.Exceptions;
 using M3A.Domain.ValueObjects;
 using M3A.Repositories;
@@ -48,7 +49,9 @@ public sealed class EventDelegate(
             Venue = venue
         };
 
-        await eventRepository.AddAsync(@event, cancellationToken);
+        // The whole inventory is issued up front, one ticket per place, and saved with the event.
+        await eventRepository.AddWithTicketsAsync(
+            @event, IssueTickets(@event.Id, eventCapacity), cancellationToken);
         return @event;
     }
 
@@ -71,13 +74,19 @@ public sealed class EventDelegate(
 
         EnsureCapacityWithinVenueLimit(eventCapacity, venue.Capacity);
 
-        // Tickets already issued keep their places, so capacity can't drop below them.
-        var issued = await ticketRepository.CountForEventAsync(id, cancellationToken);
-        if (eventCapacity < issued)
+        // Sold tickets keep their places, so capacity can't drop below them.
+        var sold = await ticketRepository.CountSoldForEventAsync(id, cancellationToken);
+        if (eventCapacity < sold)
         {
             throw new BusinessRuleViolationException(
-                $"Event capacity ({eventCapacity}) cannot be lower than the {issued} tickets already issued.");
+                $"Event capacity ({eventCapacity}) cannot be lower than the {sold} tickets already sold.");
         }
+
+        // Grow or shrink the unsold pool so the inventory matches the new capacity.
+        var issued = await ticketRepository.CountForEventAsync(id, cancellationToken);
+        var difference = eventCapacity - issued;
+        var ticketsToIssue = difference > 0 ? IssueTickets(id, difference) : [];
+        var unsoldToRemove = difference < 0 ? -difference : 0;
 
         existing.Name = name;
         existing.DateTime = dateTime;
@@ -85,26 +94,44 @@ public sealed class EventDelegate(
         existing.VenueId = venueId;
         existing.Venue = venue;
 
-        await eventRepository.UpdateAsync(existing, cancellationToken);
+        if (!await eventRepository.UpdateWithTicketsAsync(
+                existing, ticketsToIssue, unsoldToRemove, cancellationToken))
+        {
+            // Tickets were sold between the count above and the resize.
+            throw new BusinessRuleViolationException(
+                $"Event capacity ({eventCapacity}) cannot be lower than the tickets already sold.");
+        }
+
         return existing;
     }
 
     /// <inheritdoc />
     public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
-        // The tickets -> events foreign key is Restrict, so the database would reject this
-        // with a constraint violation. Refusing it here makes it the 422 it always was,
-        // rather than letting a DbUpdateException escape as a 500.
-        if (await ticketRepository.ExistsForEventAsync(id, cancellationToken))
+        // Unsold tickets are removed with the event; sold ones are not. The tickets -> events
+        // foreign key is Restrict, so the database would reject the delete with a constraint
+        // violation. Refusing it here makes it a 422 rather than a DbUpdateException 500.
+        if (await ticketRepository.CountSoldForEventAsync(id, cancellationToken) > 0)
         {
             throw new BusinessRuleViolationException(
-                $"Event '{id}' cannot be deleted because tickets have been issued for it.");
+                $"Event '{id}' cannot be deleted because tickets have been sold for it.");
         }
 
         if (!await eventRepository.DeleteAsync(id, cancellationToken))
         {
             throw new EntityNotFoundException(nameof(Event), id);
         }
+    }
+
+    private static Ticket[] IssueTickets(string eventId, int count)
+    {
+        var tickets = new Ticket[count];
+        for (var i = 0; i < count; i++)
+        {
+            tickets[i] = new Ticket { Id = ResourceId.New(), EventId = eventId, Status = TicketStatus.Issued };
+        }
+
+        return tickets;
     }
 
     private static void EnsureCapacityIsPositive(int capacity)

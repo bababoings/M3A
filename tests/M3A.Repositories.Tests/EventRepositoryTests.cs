@@ -1,4 +1,6 @@
 using M3A.Domain.Entities;
+using M3A.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using M3A.Tests.Builders;
 
 namespace M3A.Repositories.Tests;
@@ -84,5 +86,26 @@ public class EventRepositoryTests : RepositoryTestBase
 
         Assert.True(await _eventRepository.DeleteAsync("event-1", cancellationToken));
         Assert.False(await _eventRepository.ExistsAsync("event-1", cancellationToken));
+    }
+
+    [Fact]
+    public async Task UpdateWithTicketsAsync_ReturnsFalseAndSavesNothing_WhenTooFewUnsoldTickets()
+    {
+        var cancellationToken = CancellationToken.None;
+        await _venueRepository.AddAsync(new VenueBuilder().WithId("venue-1").Build(), cancellationToken);
+        var @event = new EventBuilder().WithId("event-1").WithVenueId("venue-1").WithEventCapacity(2).Build();
+        await _eventRepository.AddWithTicketsAsync(
+            @event,
+            [
+                new TicketBuilder().WithId("t-1").WithEventId("event-1").WithStatus(TicketStatus.Purchased).Build(),
+                new TicketBuilder().WithId("t-2").WithEventId("event-1").Build(),
+            ],
+            cancellationToken);
+
+        @event.EventCapacity = 0;
+        var resized = await _eventRepository.UpdateWithTicketsAsync(@event, [], 2, cancellationToken);
+
+        Assert.False(resized);
+        Assert.Equal(2, await DbContext.Tickets.CountAsync(cancellationToken));
     }
 }

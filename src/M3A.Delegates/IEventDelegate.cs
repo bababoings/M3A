@@ -15,7 +15,10 @@ public interface IEventDelegate
     /// <summary>Returns the event with the given id, or <c>null</c> when it does not exist.</summary>
     Task<Event?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
-    /// <summary>Creates an event, assigning its identifier.</summary>
+    /// <summary>
+    /// Creates an event, assigning its identifier, and issues one <c>Issued</c> ticket per unit of
+    /// capacity in the same save.
+    /// </summary>
     /// <exception cref="EntityNotFoundException">No venue has the given <paramref name="venueId"/>.</exception>
     /// <exception cref="BusinessRuleViolationException">Capacity is not positive, capacity exceeds venue capacity, or date/time is not in the future.</exception>
     Task<Event> CreateAsync(
@@ -25,9 +28,12 @@ public interface IEventDelegate
         string venueId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Replaces every mutable field of an existing event.</summary>
+    /// <summary>
+    /// Replaces every mutable field of an existing event, issuing or removing unsold tickets so the
+    /// inventory matches the new capacity.
+    /// </summary>
     /// <exception cref="EntityNotFoundException">No event has the given <paramref name="id"/> or no venue has the given <paramref name="venueId"/>.</exception>
-    /// <exception cref="BusinessRuleViolationException">Capacity is not positive, exceeds venue capacity, or is lower than the number of tickets already issued.</exception>
+    /// <exception cref="BusinessRuleViolationException">Capacity is not positive, exceeds venue capacity, or is lower than the number of tickets already sold.</exception>
     Task<Event> UpdateAsync(
         string id,
         string name,
@@ -36,7 +42,8 @@ public interface IEventDelegate
         string venueId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Deletes an event.</summary>
+    /// <summary>Deletes an event along with its unsold tickets.</summary>
     /// <exception cref="EntityNotFoundException">No event has the given id.</exception>
+    /// <exception cref="BusinessRuleViolationException">Tickets have been sold for the event.</exception>
     Task DeleteAsync(string id, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 using M3A.Domain.Entities;
+using M3A.Domain.Enums;
 using M3A.Domain.Exceptions;
 using M3A.Repositories;
 using M3A.Tests.Builders;
@@ -21,17 +22,46 @@ public class EventDelegateTests
         _delegate = new EventDelegate(
             _eventRepoMock.Object, _venueRepoMock.Object, _ticketRepoMock.Object);
 
-    /// <summary>Sets up the "no tickets issued" case that lets a delete through.</summary>
-    private void NoTicketsFor(string eventId) =>
-        _ticketRepoMock
-            .Setup(repo => repo.ExistsForEventAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-    /// <summary>Sets up how many tickets have been issued, which bounds how low capacity can go.</summary>
+    /// <summary>Sets up how many tickets exist for the event, whatever their status.</summary>
     private void TicketsIssuedFor(string eventId, int issued) =>
         _ticketRepoMock
             .Setup(repo => repo.CountForEventAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(issued);
+
+    /// <summary>Sets up how many tickets have been sold, which bounds how low capacity can go.</summary>
+    private void TicketsSoldFor(string eventId, int sold) =>
+        _ticketRepoMock
+            .Setup(repo => repo.CountSoldForEventAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sold);
+
+    /// <summary>Sets up the resize call, capturing what it was asked to do.</summary>
+    private void CaptureUpdate(
+        Event existing,
+        Action<IReadOnlyCollection<Ticket>, int> capture,
+        bool succeeds = true) =>
+        _eventRepoMock
+            .Setup(repo => repo.UpdateWithTicketsAsync(
+                existing,
+                It.IsAny<IReadOnlyCollection<Ticket>>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Event, IReadOnlyCollection<Ticket>, int, CancellationToken>(
+                (_, toIssue, toRemove, _) => capture(toIssue, toRemove))
+            .ReturnsAsync(succeeds);
+
+    /// <summary>Sets up the existing event and its venue for an update.</summary>
+    private Event ExistingEventAtVenue(int eventCapacity, int venueCapacity = 1000)
+    {
+        var existing = new EventBuilder().WithId("event-1").WithName("Old").WithEventCapacity(eventCapacity).Build();
+        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(venueCapacity).Build();
+        _eventRepoMock
+            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        _venueRepoMock
+            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(venue);
+        return existing;
+    }
 
     [Fact]
     public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
@@ -78,8 +108,11 @@ public class EventDelegateTests
             .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(venue);
 
+        IReadOnlyCollection<Ticket>? issued = null;
         _eventRepoMock
-            .Setup(repo => repo.AddAsync(It.IsAny<Event>(), It.IsAny<CancellationToken>()))
+            .Setup(repo => repo.AddWithTicketsAsync(
+                It.IsAny<Event>(), It.IsAny<IReadOnlyCollection<Ticket>>(), It.IsAny<CancellationToken>()))
+            .Callback<Event, IReadOnlyCollection<Ticket>, CancellationToken>((_, tickets, _) => issued = tickets)
             .Returns(Task.CompletedTask);
 
         var created = await _delegate.CreateAsync("Concert", dt, 500, "venue-1");
@@ -89,7 +122,20 @@ public class EventDelegateTests
         Assert.Equal(dt, created.DateTime);
         Assert.Equal(500, created.EventCapacity);
         Assert.Equal("venue-1", created.VenueId);
-        _eventRepoMock.Verify(repo => repo.AddAsync(It.IsAny<Event>(), It.IsAny<CancellationToken>()), Times.Once);
+        _eventRepoMock.Verify(
+            repo => repo.AddWithTicketsAsync(
+                It.IsAny<Event>(), It.IsAny<IReadOnlyCollection<Ticket>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // One Issued ticket per place, all for this event, each with its own id.
+        Assert.NotNull(issued);
+        Assert.Equal(500, issued.Count);
+        Assert.All(issued, ticket =>
+        {
+            Assert.Equal(created.Id, ticket.EventId);
+            Assert.Equal(TicketStatus.Issued, ticket.Status);
+        });
+        Assert.Equal(500, issued.Select(ticket => ticket.Id).Distinct().Count());
     }
 
     [Theory]
@@ -192,45 +238,63 @@ public class EventDelegateTests
     [Fact]
     public async Task UpdateAsync_ReplacesFields_WhenValid()
     {
-        var existing = new EventBuilder().WithId("event-1").WithName("Old").WithEventCapacity(100).Build();
-        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(1000).Build();
+        var existing = ExistingEventAtVenue(eventCapacity: 400);
         var dt = DateTimeOffset.UtcNow.AddDays(2);
-
-        _eventRepoMock
-            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
-
-        _venueRepoMock
-            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(venue);
-
-        TicketsIssuedFor("event-1", 0);
-
-        _eventRepoMock
-            .Setup(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        TicketsSoldFor("event-1", 0);
+        TicketsIssuedFor("event-1", 400);
+        CaptureUpdate(existing, (_, _) => { });
 
         var updated = await _delegate.UpdateAsync("event-1", "New Name", dt, 400, "venue-1");
 
         Assert.Equal("New Name", updated.Name);
         Assert.Equal(dt, updated.DateTime);
         Assert.Equal(400, updated.EventCapacity);
-        _eventRepoMock.Verify(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAsync_Throws_WhenCapacityIsBelowIssuedTickets()
+    public async Task UpdateAsync_IssuesTheExtraTickets_WhenCapacityGrows()
     {
-        var existing = new EventBuilder().WithId("event-1").WithEventCapacity(100).Build();
-        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(1000).Build();
+        var existing = ExistingEventAtVenue(eventCapacity: 100);
+        TicketsSoldFor("event-1", 30);
+        TicketsIssuedFor("event-1", 100);
+        IReadOnlyCollection<Ticket>? toIssue = null;
+        var toRemove = -1;
+        CaptureUpdate(existing, (issue, remove) => (toIssue, toRemove) = (issue, remove));
 
-        _eventRepoMock
-            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
-        _venueRepoMock
-            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(venue);
-        TicketsIssuedFor("event-1", 10);
+        await _delegate.UpdateAsync("event-1", "Old", DateTimeOffset.UtcNow.AddDays(1), 150, "venue-1");
+
+        Assert.NotNull(toIssue);
+        Assert.Equal(50, toIssue.Count);
+        Assert.All(toIssue, ticket =>
+        {
+            Assert.Equal("event-1", ticket.EventId);
+            Assert.Equal(TicketStatus.Issued, ticket.Status);
+        });
+        Assert.Equal(0, toRemove);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RemovesUnsoldTickets_WhenCapacityShrinks()
+    {
+        var existing = ExistingEventAtVenue(eventCapacity: 100);
+        TicketsSoldFor("event-1", 30);
+        TicketsIssuedFor("event-1", 100);
+        IReadOnlyCollection<Ticket>? toIssue = null;
+        var toRemove = -1;
+        CaptureUpdate(existing, (issue, remove) => (toIssue, toRemove) = (issue, remove));
+
+        await _delegate.UpdateAsync("event-1", "Old", DateTimeOffset.UtcNow.AddDays(1), 40, "venue-1");
+
+        Assert.NotNull(toIssue);
+        Assert.Empty(toIssue);
+        Assert.Equal(60, toRemove);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Throws_WhenCapacityIsBelowSoldTickets()
+    {
+        var existing = ExistingEventAtVenue(eventCapacity: 100);
+        TicketsSoldFor("event-1", 10);
 
         await Assert.ThrowsAsync<BusinessRuleViolationException>(
             () => _delegate.UpdateAsync("event-1", "New Name", DateTimeOffset.UtcNow.AddDays(1), 9, "venue-1"));
@@ -238,37 +302,43 @@ public class EventDelegateTests
         // A refused update must leave the tracked entity untouched.
         Assert.Equal(100, existing.EventCapacity);
         _eventRepoMock.Verify(
-            repo => repo.UpdateAsync(It.IsAny<Event>(), It.IsAny<CancellationToken>()),
+            repo => repo.UpdateWithTicketsAsync(
+                It.IsAny<Event>(), It.IsAny<IReadOnlyCollection<Ticket>>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task UpdateAsync_AllowsCapacityEqualToIssuedTickets()
+    public async Task UpdateAsync_AllowsCapacityEqualToSoldTickets()
     {
-        var existing = new EventBuilder().WithId("event-1").WithEventCapacity(100).Build();
-        var venue = new VenueBuilder().WithId("venue-1").WithCapacity(1000).Build();
-
-        _eventRepoMock
-            .Setup(repo => repo.GetByIdAsync("event-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
-        _venueRepoMock
-            .Setup(repo => repo.GetByIdAsync("venue-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(venue);
-        TicketsIssuedFor("event-1", 10);
-        _eventRepoMock
-            .Setup(repo => repo.UpdateAsync(existing, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var existing = ExistingEventAtVenue(eventCapacity: 100);
+        TicketsSoldFor("event-1", 10);
+        TicketsIssuedFor("event-1", 100);
+        var toRemove = -1;
+        CaptureUpdate(existing, (_, remove) => toRemove = remove);
 
         var updated = await _delegate.UpdateAsync(
             "event-1", "New Name", DateTimeOffset.UtcNow.AddDays(1), 10, "venue-1");
 
         Assert.Equal(10, updated.EventCapacity);
+        Assert.Equal(90, toRemove);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Throws_WhenTicketsAreSoldBeforeTheResizeLands()
+    {
+        var existing = ExistingEventAtVenue(eventCapacity: 100);
+        TicketsSoldFor("event-1", 10);
+        TicketsIssuedFor("event-1", 100);
+        CaptureUpdate(existing, (_, _) => { }, succeeds: false);
+
+        await Assert.ThrowsAsync<BusinessRuleViolationException>(
+            () => _delegate.UpdateAsync("event-1", "New Name", DateTimeOffset.UtcNow.AddDays(1), 10, "venue-1"));
     }
 
     [Fact]
     public async Task DeleteAsync_Throws_WhenNotFound()
     {
-        NoTicketsFor("missing");
+        TicketsSoldFor("missing", 0);
         _eventRepoMock
             .Setup(repo => repo.DeleteAsync("missing", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -277,9 +347,9 @@ public class EventDelegateTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Succeeds_WhenFound()
+    public async Task DeleteAsync_Succeeds_WhenNoTicketsHaveBeenSold()
     {
-        NoTicketsFor("event-1");
+        TicketsSoldFor("event-1", 0);
         _eventRepoMock
             .Setup(repo => repo.DeleteAsync("event-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -289,11 +359,9 @@ public class EventDelegateTests
     }
 
     [Fact]
-    public async Task DeleteAsync_Throws_WhenTicketsHaveBeenIssued()
+    public async Task DeleteAsync_Throws_WhenTicketsHaveBeenSold()
     {
-        _ticketRepoMock
-            .Setup(repo => repo.ExistsForEventAsync("event-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        TicketsSoldFor("event-1", 1);
 
         await Assert.ThrowsAsync<BusinessRuleViolationException>(
             () => _delegate.DeleteAsync("event-1"));

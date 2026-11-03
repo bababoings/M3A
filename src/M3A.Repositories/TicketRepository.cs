@@ -1,4 +1,5 @@
 using M3A.Domain.Entities;
+using M3A.Domain.Enums;
 using M3A.Repositories.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,12 +18,14 @@ public sealed class TicketRepository(M3ADbContext dbContext) : ITicketRepository
         dbContext.Tickets.AnyAsync(ticket => ticket.Id == id, cancellationToken);
 
     /// <inheritdoc />
-    public Task<bool> ExistsForEventAsync(string eventId, CancellationToken cancellationToken = default) =>
-        dbContext.Tickets.AnyAsync(ticket => ticket.EventId == eventId, cancellationToken);
-
-    /// <inheritdoc />
     public Task<int> CountForEventAsync(string eventId, CancellationToken cancellationToken = default) =>
         dbContext.Tickets.CountAsync(ticket => ticket.EventId == eventId, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> CountSoldForEventAsync(string eventId, CancellationToken cancellationToken = default) =>
+        dbContext.Tickets.CountAsync(
+            ticket => ticket.EventId == eventId && ticket.Status != TicketStatus.Issued,
+            cancellationToken);
 
     public async Task AddAsync(Ticket entity, CancellationToken cancellationToken = default)
     {

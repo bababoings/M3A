@@ -21,9 +21,24 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     [Fact]
-    public async Task Post_Returns201WithLocation_WhenEventExists()
+    public async Task CreatingAnEvent_IssuesOneTicketPerPlace()
     {
+        var eventId = await CreateEventAsync(eventCapacity: 5);
+
+        var tickets = await TicketsForAsync(eventId);
+
+        Assert.Equal(5, tickets.Count);
+        Assert.All(tickets, ticket => Assert.Equal(TicketStatus.Issued, ticket.Status));
+        Assert.Equal(5, tickets.Select(ticket => ticket.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Post_Returns201WithLocation_WhenEventHasAFreePlace()
+    {
+        // Events start with their full inventory, so free a place first.
         var eventId = await CreateEventAsync();
+        var existing = (await TicketsForAsync(eventId))[0];
+        await Client.DeleteAsync($"/tickets/{existing.Id}");
 
         var response = await Client.PostAsJsonAsync(
             "/tickets", new CreateTicketDto(eventId), JsonOptions);
@@ -40,13 +55,12 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     [Fact]
     public async Task Post_Returns422_WhenEventIsAtCapacity()
     {
+        // A new event is already at capacity: every place has an issued ticket.
         var eventId = await CreateEventAsync(eventCapacity: 1);
 
-        var first = await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(eventId), JsonOptions);
-        var second = await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(eventId), JsonOptions);
+        var response = await Client.PostAsJsonAsync("/tickets", new CreateTicketDto(eventId), JsonOptions);
 
-        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, second.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
 
     [Fact]
@@ -139,18 +153,20 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    /// <summary>Creates an event and issues a ticket on it, returning the ticket id.</summary>
-    private async Task<string> IssueTicketAsync()
+    /// <summary>Creates an event and returns the id of one of the tickets issued with it.</summary>
+    private async Task<string> IssueTicketAsync() =>
+        (await TicketsForAsync(await CreateEventAsync()))[0].Id;
+
+    /// <summary>Returns every ticket issued for the given event.</summary>
+    private async Task<List<TicketDto>> TicketsForAsync(string eventId)
     {
-        var response = await Client.PostAsJsonAsync(
-            "/tickets", new CreateTicketDto(await CreateEventAsync()), JsonOptions);
-        var ticket = await ReadAsync<TicketDto>(response);
-        Assert.NotNull(ticket);
-        return ticket.Id;
+        var all = await ReadAsync<List<TicketDto>>(await Client.GetAsync("/tickets"));
+        Assert.NotNull(all);
+        return all.Where(ticket => ticket.EventId == eventId).ToList();
     }
 
     /// <summary>Creates a venue and an event on it, returning the event id.</summary>
-    private async Task<string> CreateEventAsync(int eventCapacity = 50000)
+    private async Task<string> CreateEventAsync(int eventCapacity = 3)
     {
         var venueResponse = await Client.PostAsJsonAsync(
             "/venues", new CreateVenueDto("Foro Sol", 65000), JsonOptions);
