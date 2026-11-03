@@ -26,3 +26,6 @@ appsettings.Local.json
 .env.development.local
 .env.test.local
 .env.production.local
+# Load tests
+.venv-loadtests/
+loadtests/results/

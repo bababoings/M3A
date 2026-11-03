@@ -1,0 +1,93 @@
+# PostgreSQL for local kind development (namespace m3a).
+#
+# Prerequisites, created imperatively so no credentials are committed:
+#   - Secret m3a-db-superuser  (key: password) — the postgres superuser password
+#   - ConfigMap m3a-db-init    (key: 01-m3a.sql) — db/init.sql
+# See db/README.md for the exact commands.
+#
+# The image runs /docker-entrypoint-initdb.d only on the first start of an empty data
+# directory. POSTGRES_DB is deliberately unset: init.sql creates m3a_db itself.
+apiVersion: v1
+kind: Service
+metadata:
+  name: m3a-db
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-db
+spec:
+  clusterIP: None # headless: stable DNS m3a-db-0.m3a-db for the StatefulSet pod
+  selector:
+    app.kubernetes.io/name: m3a-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: m3a-db
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-db
+spec:
+  serviceName: m3a-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: m3a-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: m3a-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: m3a-db-superuser
+                  key: password
+            # Subdirectory, so the volume's lost+found never makes initdb refuse to run.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "m3a_db"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: init
+          configMap:
+            name: m3a-db-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard # kind's local-path provisioner
+        resources:
+          requests:
+            storage: 1Gi

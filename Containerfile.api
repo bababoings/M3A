@@ -1,0 +1,32 @@
+# M3A Ticketing API (src/M3A.Api) — build from the repo root:
+#
+#     podman build -f Containerfile.api -t m3a-api .
+#
+# The connection string is templated from DB_HOST / DB_PORT / DB_NAME / DB_USERNAME /
+# DB_PASSWORD (see src/M3A.Api/appsettings.json). Supply them at runtime (env vars, a
+# Kubernetes Secret, ...) — .env is excluded by .containerignore and never baked in.
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Restore first, from project files only, so the package layer is cached until a
+# dependency actually changes.
+COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
+COPY src/M3A.Domain/M3A.Domain.csproj             src/M3A.Domain/
+COPY src/M3A.Repositories/M3A.Repositories.csproj src/M3A.Repositories/
+COPY src/M3A.Delegates/M3A.Delegates.csproj       src/M3A.Delegates/
+COPY src/M3A.Api/M3A.Api.csproj                   src/M3A.Api/
+RUN dotnet restore src/M3A.Api/M3A.Api.csproj
+
+COPY src/ src/
+RUN dotnet publish src/M3A.Api/M3A.Api.csproj -c Release -o /app --no-restore --no-self-contained
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=build /app .
+# The aspnet image listens on ASPNETCORE_HTTP_PORTS=8080 by default; kind.yaml maps
+# host 8080 -> NodePort 30080, so the Service should target this port.
+ENV ASPNETCORE_ENVIRONMENT=Production
+USER $APP_UID
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "M3A.Api.dll"]

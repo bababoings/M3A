@@ -159,6 +159,16 @@ are the only state changes and each rejects a ticket not in the expected source 
 There is no `PUT /tickets/{id}` — status is changed through the two action endpoints, not by
 replacing the resource.
 
+### Health
+| Method | Path | Checks | Response |
+|--------|------|--------|----------|
+| GET | `/health/live` | none — the process is serving HTTP | `200 Healthy` |
+| GET | `/health/ready` | database reachable (`AddDbContextCheck<M3ADbContext>`) | `200 Healthy` / `503 Unhealthy` |
+
+Plain text, not part of the OpenAPI document, defined in `Extensions/HealthCheckExtensions.cs`.
+Kubernetes uses `ready` for the readiness probe (a DB outage removes the Pod from the Service)
+and `live` for the liveness probe (a DB outage never restarts the Pod) — see `kubernetes/api.yml`.
+
 ### Conventions shared by every resource
 - Identifiers are **server-assigned** (`ResourceId.New()`), never supplied by the client.
 - `POST` returns the created DTO *and* a `Location: /{resource}/{id}` header.

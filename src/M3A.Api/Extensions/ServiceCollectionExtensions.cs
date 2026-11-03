@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
 
         services.AddValidatorsFromAssembly(typeof(ServiceCollectionExtensions).Assembly, includeInternalTypes: true);
         services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddM3AHealthChecks();
         services.AddOpenApi(options =>
             options.AddDocumentTransformer((document, _, _) =>
             {

@@ -22,6 +22,7 @@ public static class WebApplicationExtensions
             app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
         }
 
+        app.MapM3AHealthChecks();
         app.MapM3ARoutes();
 
         return app;

@@ -1,0 +1,25 @@
+# Shared application configuration for local kind development (namespace m3a).
+# Credentials are intentionally hard-coded and match db/init.sql — local only, never
+# reuse these values outside a throwaway cluster.
+#
+# Feeds the ${DB_*} placeholders in src/M3A.Api/appsettings.json. DB_HOST points at the
+# PostgreSQL Service from db/postgres.yml instead of localhost.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: m3a-app-config
+  namespace: m3a
+data:
+  DB_HOST: m3a-db.m3a.svc.cluster.local
+  DB_PORT: "5432"
+  DB_NAME: m3a_db
+  DB_USERNAME: m3a_svc
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: m3a-app-db
+  namespace: m3a
+type: Opaque
+stringData:
+  DB_PASSWORD: password

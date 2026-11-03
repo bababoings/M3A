@@ -1,0 +1,80 @@
+# M3A API Deployment + NodePort Service (namespace m3a).
+#
+# Image: localhost/m3a-api:dev, loaded into kind with `kind load image-archive` (never
+# pulled from a registry, hence imagePullPolicy: Never).
+# Reachable from the host at http://127.0.0.1:8080 via kind.yaml (host 8080 -> 30080).
+#
+# Replicas are managed by kubernetes/api-hpa.yml. Re-applying this file resets the
+# Deployment to 1 replica until the HPA scales it again.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: m3a-api
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: m3a-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: m3a-api
+    spec:
+      containers:
+        - name: api
+          image: localhost/m3a-api:dev
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: m3a-app-config
+            - secretRef:
+                name: m3a-app-db
+          # Readiness checks the database: an unreachable DB takes the Pod out of the Service
+          # without restarting it. Liveness only checks the process, so a DB outage never
+          # causes a restart loop. See src/M3A.Api/Extensions/HealthCheckExtensions.cs.
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # The HPA's 40% target is relative to this request: ~100m per Pod.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: m3a-api
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-api
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: m3a-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 30080

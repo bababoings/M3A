@@ -1,0 +1,15 @@
+# Keep the build context small and free of secrets / host build output.
+.env
+.env.*
+!.env.example
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.vs/
+.vscode/
+.vscodecsdt/
+.idea/
+.claude/
+**/*.user
+**/.DS_Store
