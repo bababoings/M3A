@@ -23,6 +23,7 @@ public static class WebApplicationExtensions
         }
 
         app.MapM3AHealthChecks();
+        app.MapM3AMetrics();
         app.MapM3ARoutes();
 
         return app;

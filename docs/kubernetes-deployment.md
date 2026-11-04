@@ -44,7 +44,8 @@ Contents: [What gets deployed](#what-gets-deployed) · [Prerequisites](#prerequi
 | Autoscaler | HPA `m3a-api` | `kubernetes/api-hpa.yml` |
 
 M3A has no message broker and no background consumer, so unlike the Tournaments reference
-setup there is no ActiveMQ, consumer Deployment or Tempo tracing here. (`Containerfile.consumer`
+setup there is no ActiveMQ or consumer Deployment here. Optional monitoring (Prometheus, Grafana,
+Tempo traces, PostgreSQL query statistics) is covered separately in [monitoring.md](monitoring.md). (`Containerfile.consumer`
 is a leftover from that setup and does not build against this repository.)
 
 ### Host ports
@@ -54,8 +55,8 @@ is a leftover from that setup and does not build against this repository.)
 | Host | NodePort | Used by |
 |---|---|---|
 | `127.0.0.1:8080` | `30080` | `m3a-api` |
-| `127.0.0.1:3000` | `30030` | reserved (e.g. Grafana) — nothing deployed yet |
-| `127.0.0.1:9090` | `30090` | reserved (e.g. Prometheus) — nothing deployed yet |
+| `127.0.0.1:3000` | `30030` | Grafana, once installed ([monitoring.md](monitoring.md)) |
+| `127.0.0.1:9090` | `30090` | Prometheus, once installed ([monitoring.md](monitoring.md)) |
 
 Port mappings are fixed when the cluster is created; changing `kind.yaml` requires recreating
 the cluster.
@@ -491,6 +492,8 @@ kind delete cluster --name kind
 | `db/postgres.yml` | PostgreSQL 17 StatefulSet with a 1Gi PVC and headless Service `m3a-db` |
 | `db/README.md` | Database-specific notes |
 | `kubernetes/app-config.yml` | `DB_*` settings (ConfigMap) and `DB_PASSWORD` (Secret) for the API |
-| `kubernetes/api.yml` | API Deployment (probes, resources) and NodePort Service on 30080 |
+| `kubernetes/api.yml` | API Deployment (probes, resources, OTLP trace endpoint) and NodePort Service on 30080 |
 | `kubernetes/api-hpa.yml` | HPA: 1–3 replicas at 40% CPU |
 | `src/M3A.Api/Extensions/HealthCheckExtensions.cs` | `/health/live` and `/health/ready` |
+| `src/M3A.Api/Extensions/TelemetryExtensions.cs` | OpenTelemetry: Prometheus `/metrics`, OTLP traces when configured |
+| `kubernetes/monitoring/` | Prometheus/Grafana Helm values, ServiceMonitors, Tempo, postgres_exporter — see [monitoring.md](monitoring.md) |

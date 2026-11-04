@@ -11,6 +11,12 @@ public static class ServiceCollectionExtensions
     /// <summary>Name of the connection string read from configuration.</summary>
     public const string ConnectionStringName = "DefaultConnection";
 
+    /// <summary>
+    /// Npgsql data source name: the <c>db.client.connection.pool.name</c> label on Npgsql
+    /// metrics. Without it Npgsql uses the connection string, leaking connection details.
+    /// </summary>
+    public const string DataSourceName = "m3a-db";
+
     /// <summary>Adds the <see cref="M3ADbContext"/> and one repository per aggregate root.</summary>
     public static IServiceCollection AddRepositories(
         this IServiceCollection services,
@@ -23,7 +29,9 @@ public static class ServiceCollectionExtensions
         var connectionString = ConnectionStringTemplate.Expand(
             template, Environment.GetEnvironmentVariable);
 
-        services.AddDbContext<M3ADbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<M3ADbContext>(options => options.UseNpgsql(
+            connectionString,
+            npgsql => npgsql.ConfigureDataSource(dataSource => dataSource.Name = DataSourceName)));
 
         return services.AddRepositoryImplementations();
     }

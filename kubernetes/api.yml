@@ -35,6 +35,14 @@ spec:
                 name: m3a-app-config
             - secretRef:
                 name: m3a-app-db
+          # Traces go to Tempo (kubernetes/monitoring/tempo.yml). Without Tempo deployed the
+          # exporter only logs export failures; metrics at /metrics are unaffected.
+          # Sampling: add OTEL_TRACES_SAMPLER=parentbased_traceidratio, OTEL_TRACES_SAMPLER_ARG=0.1.
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.monitoring.svc.cluster.local:4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
           # Readiness checks the database: an unreachable DB takes the Pod out of the Service
           # without restarting it. Liveness only checks the process, so a DB outage never
           # causes a restart loop. See src/M3A.Api/Extensions/HealthCheckExtensions.cs.

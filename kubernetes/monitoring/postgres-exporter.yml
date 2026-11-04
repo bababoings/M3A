@@ -1,0 +1,82 @@
+# prometheus-community postgres_exporter for m3a_db, plus its Service and ServiceMonitor.
+# LOCAL kind development only. See docs/monitoring.md, sections 4–5.
+#
+# Prerequisites:
+#   - pg_stat_statements preloaded and the extension + m3a_monitor role created (section 4)
+#   - Secret postgres-exporter (key DATA_SOURCE_NAME), created imperatively (section 5)
+#
+# --collector.stat_statements is opt-in: it costs overhead and one series per query id,
+# and returns only the top statements (by total time), so it is not a complete SQL audit.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+          args:
+            - --collector.stat_statements
+            - --collector.stat_statements.limit=50
+          envFrom:
+            - secretRef:
+                name: postgres-exporter
+          ports:
+            - name: metrics
+              containerPort: 9187
+          readinessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: postgres-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: postgres-exporter
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-exporter
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: postgres-exporter
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-exporter
+  namespaceSelector:
+    matchNames: [m3a]
+  endpoints:
+    - port: metrics
+      interval: 30s

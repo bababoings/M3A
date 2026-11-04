@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddApiServices();
         services.AddDelegates();
         services.AddRepositories(configuration);
+        services.AddM3ATelemetry(configuration);
         return services;
     }
 

@@ -1,0 +1,53 @@
+# Helm values for prometheus-community/kube-prometheus-stack — LOCAL kind development only.
+# This is Helm input, not a Kubernetes resource: never `kubectl apply` it (or this directory).
+# See docs/monitoring.md.
+#
+# - Grafana and Prometheus are exposed as NodePorts 30030 / 30090, which kind.yaml maps to
+#   127.0.0.1:3000 / 127.0.0.1:9090 on the host.
+# - No persistent storage: replacing a Pod loses metrics and hand-made dashboards.
+# - Alertmanager is disabled; nothing here alerts.
+
+alertmanager:
+  enabled: false
+
+grafana:
+  service:
+    type: NodePort
+    nodePort: 30030
+  # The chart's datasource sidecar (enabled by default) loads ConfigMaps labelled
+  # grafana_datasource: "1" from this namespace — see tempo-datasource.yml.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+
+prometheus:
+  service:
+    type: NodePort
+    nodePort: 30090
+  prometheusSpec:
+    retention: 24h
+    scrapeInterval: 15s
+    # Pick up every ServiceMonitor in the cluster (api-servicemonitor.yml,
+    # postgres-exporter.yml), not only those labelled release: monitoring.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 384Mi
+      limits:
+        memory: 1Gi
+
+# kind runs these control-plane components bound to 127.0.0.1, so their targets would only
+# ever show as down. Node, kubelet/cAdvisor and kube-state-metrics are kept.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

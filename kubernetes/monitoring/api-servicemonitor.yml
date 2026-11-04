@@ -1,0 +1,23 @@
+# Prometheus Operator ServiceMonitor for the M3A API's /metrics endpoint.
+# Requires the kube-prometheus-stack CRDs (docs/monitoring.md, section 1).
+#
+# Selects the Service in kubernetes/api.yml by its metadata.labels and scrapes every ready
+# endpoint (each API Pod) individually — not one random Pod through the NodePort.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: m3a-api
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-api
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: m3a-api
+  namespaceSelector:
+    matchNames: [m3a]
+  endpoints:
+    - port: http # the Service *port name*, not the container port number
+      path: /metrics
+      interval: 15s

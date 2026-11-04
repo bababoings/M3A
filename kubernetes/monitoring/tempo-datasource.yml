@@ -1,0 +1,28 @@
+# Grafana datasource for Tempo, loaded by the Grafana datasource sidecar that
+# kube-prometheus-stack installs (it watches ConfigMaps labelled grafana_datasource: "1"
+# in the monitoring namespace and reloads without restarting Grafana).
+#
+# The URL is Tempo's query port 3200 — not the OTLP ports 4317/4318, and never localhost
+# (that would be Grafana's own Pod). The existing Prometheus datasource is untouched.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-datasource
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  tempo-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.monitoring.svc.cluster.local:3200
+        editable: false
+        jsonData:
+          tracesToMetrics:
+            datasourceUid: prometheus
+          nodeGraph:
+            enabled: true
