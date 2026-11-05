@@ -279,7 +279,7 @@ The API reaches the database through the cluster DNS name — no port-forward is
 This split means a database outage takes API Pods out of rotation and they rejoin on their own
 when the database returns, instead of being restarted in a loop.
 
-**Resources.** Each API Pod requests `250m` CPU / `128Mi` memory and is limited to `512Mi`
+**Resources.** Each API Pod requests `100m` CPU / `128Mi` memory and is limited to `100m` CPU (10% of a core) / `512Mi`
 memory. The CPU request is what the HPA measures against.
 
 ---
@@ -344,8 +344,8 @@ Fails if something on your machine already listens on 5432 — use e.g. `15432:5
 ## Autoscaling and load testing
 
 The HPA (`kubernetes/api-hpa.yml`) keeps **1–3** API Pods, targeting **40% of each Pod's
-requested CPU** averaged across Pods. With a `250m` request that is about **100m (0.1 core) per
-Pod** — not 40% of the host's CPU. Requests are scheduling reservations, not limits.
+requested CPU** averaged across Pods. With a `100m` request that is about **40m (0.04 core) per
+Pod** — not 40% of the host's CPU. The request is a scheduling reservation; the separate `100m` limit throttles each Pod at 0.1 core.
 
 Watch it:
 
@@ -375,7 +375,7 @@ Things to know:
 
 - Metrics need a minute or so after deploy; until then the HPA shows `<unknown>/40%`.
 - **Scale-down is slow by design** — the default stabilization window is 5 minutes.
-- Only Pods scale; the single kind node must have room for 3 × 250m CPU of requests.
+- Only Pods scale; the single kind node must have room for 3 × 100m CPU of requests.
 - Re-applying `kubernetes/api.yml` resets the Deployment to 1 replica until the HPA acts again.
 - For repeatable load tests start from an empty database ([reset](#reset-the-database)) —
   `GET /events` gets slower as data accumulates.

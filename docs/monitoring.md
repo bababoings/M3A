@@ -349,7 +349,7 @@ sum by (pod) (
 ```
 
 Repeat both with `container="postgres"` and `pod="m3a-db-0"` for the database. The API HPA
-targets 40% of its `250m` CPU request — about `0.1` core per Pod, not 40% of the node.
+targets 40% of its `100m` CPU request — about `0.04` core per Pod, not 40% of the node.
 
 ### Requests per second, by route (requires section 3)
 

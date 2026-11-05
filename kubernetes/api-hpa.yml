@@ -1,5 +1,5 @@
 # Scales m3a-api between 1 and 3 Pods, targeting 40% of each Pod's *requested* CPU
-# (250m in api.yml -> ~100m per Pod), averaged across Pods. Needs Metrics Server.
+# (100m in api.yml -> ~40m per Pod), averaged across Pods. Needs Metrics Server.
 # Only Pods scale; the single kind node must have room for the extra replicas.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
