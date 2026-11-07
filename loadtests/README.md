@@ -6,6 +6,10 @@ business-rule rejections (sold out, redeem before purchase, delete an event with
 which are counted as successes when they return the expected `422`. Each journey deletes what it
 created, so the database stays the same size however long the test runs.
 
+Each journey also ends by closing its HTTP connection. Kubernetes Services balance per
+connection, not per request, so with keep-alive every user would stay on the Pod it first
+reached and Pods added by the HPA mid-run would receive almost no traffic.
+
 ## Setup
 
 ```sh
@@ -21,9 +25,9 @@ Against the kind deployment (`docs/kubernetes-deployment.md`), from the reposito
 # Web UI at http://localhost:8089 — choose users / spawn rate there
 .venv-loadtests/bin/locust -f loadtests/locustfile.py --host http://127.0.0.1:8080
 
-# Headless: 20 users, 5 spawned per second, 2 minutes
+# Headless: 10 users, 5 spawned per second, 2 minutes
 .venv-loadtests/bin/locust -f loadtests/locustfile.py --host http://127.0.0.1:8080 \
-  --headless -u 20 -r 5 -t 2m --stop-timeout 15s --csv loadtests/results/run
+  --headless -u 10 -r 5 -t 2m --stop-timeout 15s --csv loadtests/results/run
 ```
 
 **Always pass `--stop-timeout` on timed runs.** Without it Locust kills journeys mid-way when the

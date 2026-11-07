@@ -56,6 +56,10 @@ class TicketingJourneyUser(HttpUser):
             pass  # the failing request is already recorded in the statistics
         finally:
             self._cleanup(created)
+            # Kubernetes Services balance per TCP connection, not per request. Dropping the
+            # keep-alive connection makes the next journey reconnect, so it can land on Pods
+            # the HPA added since this user started instead of staying pinned to the first one.
+            self.client.close()
 
     # ------------------------------------------------------------------ journey
 
