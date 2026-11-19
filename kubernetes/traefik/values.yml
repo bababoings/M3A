@@ -1,0 +1,41 @@
+# Helm values for the Traefik ingress controller on kind (docs/traefik-ingress.md).
+# Written against chart traefik/traefik 42.x (Traefik v3.7). Helm values, NOT a Kubernetes
+# resource: never `kubectl apply` this directory.
+#
+#   host 127.0.0.1:8080 -> kind node :30081 (kind-traefik.yaml) -> Traefik "web" entrypoint
+#   -> Ingress m3a-api (api-ingress.yml) -> Service m3a-api:8080 -> ready API Pods
+#
+# Traefik forwards each HTTP request to a Pod endpoint itself, so load is balanced per request,
+# not per TCP connection as with the API's own NodePort.
+
+# Explicit class, not the cluster default: only Ingresses naming `traefik` are served.
+ingressClass:
+  enabled: true
+  isDefaultClass: false
+  name: traefik
+
+providers:
+  kubernetesIngress:
+    enabled: true
+  # Needed for IngressRoute (api-ingressroute-p2c.yml), which can set the load-balancing strategy;
+  # a plain Ingress always gets the default weighted round-robin.
+  kubernetesCRD:
+    enabled: true
+
+service:
+  spec:
+    type: NodePort
+
+ports:
+  web:
+    nodePort: 30081
+  # HTTP only. Serving HTTPS needs a secure entrypoint, a host port mapping, certificates and
+  # Ingress TLS, none of which this local setup has.
+  websecure:
+    expose:
+      default: false
+
+# The dashboard stays internal: no IngressRoute, and the `traefik` port is not exposed.
+ingressRoute:
+  dashboard:
+    enabled: false

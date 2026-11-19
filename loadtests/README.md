@@ -41,6 +41,26 @@ kubectl -n m3a get hpa m3a-api --watch
 kubectl top pods -n m3a
 ```
 
+## Stress / breaking-point run
+
+`stress.py` runs the same journey with a stepped ramp (10 → 400 users, 90 s per step), 0.25–0.75 s
+think time and a 10 s request timeout, to push past what the deployment can handle. Tunable via
+`STRESS_STEPS`, `STRESS_STEP_SECONDS`, `STRESS_SPAWN_RATE`, `STRESS_TIMEOUT`.
+
+```sh
+D=loadtests/results/run-$(date +%F)-stress; mkdir -p $D
+loadtests/tools/sample-node.sh $D/node-samples.txt 5 & SAMPLER=$!
+date +%s > $D/start_epoch
+.venv-loadtests/bin/locust -f loadtests/stress.py StressJourneyUser --host http://127.0.0.1:8080 \
+  --headless --processes 4 --stop-timeout 30s --csv $D/locust --csv-full-history \
+  --html $D/locust-report.html | tee $D/locust-console.txt
+date +%s > $D/end_epoch; kill $SAMPLER
+python3 loadtests/tools/run-graphs.py $D   # graphs/ + step-summary.csv (needs matplotlib)
+```
+
+The user class name (`StressJourneyUser`) is required. Failed journeys leave data behind, so run the
+cleanup queries below afterwards. See `results/run-2026-11-18-stress/REPORT.md` for the first run.
+
 ## Reading the results
 
 Requests are grouped by route template (`/tickets/{id}`), and expected rejections have their own

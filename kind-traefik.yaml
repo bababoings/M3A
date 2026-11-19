@@ -1,0 +1,21 @@
+# Alternative to kind.yaml for the Traefik ingress setup (docs/traefik-ingress.md).
+# Host 8080 goes to Traefik's NodePort 30081 instead of the API's 30080; Grafana and
+# Prometheus keep 3000 and 9090. Same host ports as kind.yaml, so the two clusters cannot
+# run at the same time unless you change the hostPort values here before creating it.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30081
+        hostPort: 8080
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30030
+        hostPort: 3000
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 30090
+        hostPort: 9090
+        listenAddress: "127.0.0.1"
+        protocol: TCP

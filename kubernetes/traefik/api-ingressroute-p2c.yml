@@ -1,0 +1,27 @@
+# Alternative to api-ingress.yml: the same route (m3a.local, every path -> m3a-api:8080), as a Traefik
+# IngressRoute so the load-balancing strategy can be set. Use ONE of the two, not both: they match
+# the same host, so applying both makes Traefik choose between two routers.
+#
+# strategy: p2c ("power of two choices") picks two Pods at random and sends the request to the one
+# with fewer requests in flight. A Pod that falls behind (e.g. CPU-throttled) automatically gets
+# less traffic, which the default `wrr` (weighted round-robin) does not do; see
+# loadtests/results/run-2026-11-18-stress-traefik/REPORT.md.
+#
+# Needs the Kubernetes CRD provider: providers.kubernetesCRD.enabled: true in values.yml.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: m3a-api
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-api
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`m3a.local`)
+      services:
+        - name: m3a-api
+          port: 8080
+          strategy: p2c

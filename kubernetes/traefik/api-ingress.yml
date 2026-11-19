@@ -1,0 +1,23 @@
+# Routes http://m3a.local:8080/* through Traefik to the m3a-api Service (docs/traefik-ingress.md).
+# Needs the Traefik controller from kubernetes/traefik/values.yml; an Ingress on its own does
+# nothing, and it configures no DNS (add `127.0.0.1 m3a.local` to /etc/hosts).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: m3a-api
+  namespace: m3a
+  labels:
+    app.kubernetes.io/name: m3a-api
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: m3a.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: m3a-api
+                port:
+                  name: http

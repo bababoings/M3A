@@ -46,7 +46,9 @@ Contents: [What gets deployed](#what-gets-deployed) · [Prerequisites](#prerequi
 M3A has no message broker and no background consumer, so unlike the Tournaments reference
 setup there is no ActiveMQ or consumer Deployment here. Optional monitoring (Prometheus, Grafana,
 Tempo traces, PostgreSQL query statistics) is covered separately in [monitoring.md](monitoring.md). (`Containerfile.consumer`
-is a leftover from that setup and does not build against this repository.)
+is a leftover from that setup and does not build against this repository.) To reach the API through
+an Ingress controller (per-request load balancing, hostname routing) instead of its NodePort, see
+[traefik-ingress.md](traefik-ingress.md).
 
 ### Host ports
 
