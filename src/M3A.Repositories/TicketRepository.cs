@@ -11,6 +11,12 @@ public sealed class TicketRepository(M3ADbContext dbContext) : ITicketRepository
     public async Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await dbContext.Tickets.AsNoTracking().ToListAsync(cancellationToken);
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Ticket>> GetByEventAsync(string eventId, CancellationToken cancellationToken = default) =>
+        await dbContext.Tickets.AsNoTracking()
+            .Where(ticket => ticket.EventId == eventId)
+            .ToListAsync(cancellationToken);
+
     public Task<Ticket?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
         dbContext.Tickets.FirstOrDefaultAsync(ticket => ticket.Id == id, cancellationToken);
 

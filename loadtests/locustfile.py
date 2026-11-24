@@ -28,6 +28,7 @@ Run from the repository root (see loadtests/README.md):
 
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -36,6 +37,11 @@ from locust import HttpUser, between, task
 EVENT_CAPACITY = 3
 GROWN_CAPACITY = 5
 VENUE_CAPACITY = 100
+
+# TICKETS_FILTER=server lists an event's tickets with GET /tickets?eventId=... (filtered in SQL).
+# Unset (default) keeps the original unfiltered GET /tickets + client-side filter, so baseline
+# runs stay comparable. Either way the journey sends the same number of requests.
+SERVER_FILTER = os.getenv("TICKETS_FILTER", "").lower() == "server"
 
 
 class JourneyFailed(Exception):
@@ -163,9 +169,12 @@ class TicketingJourneyUser(HttpUser):
     # ------------------------------------------------------------------ helpers
 
     def _event_tickets(self, event_id: str) -> list[dict]:
-        # There is no ?eventId= filter, so this lists every ticket in the system.
-        all_tickets = self._call("GET", "/tickets", "/tickets", expect=200)
-        return [t for t in all_tickets if t["eventId"] == event_id]
+        if SERVER_FILTER:
+            tickets = self._call("GET", f"/tickets?eventId={event_id}", "/tickets?eventId", expect=200)
+        else:
+            # Unfiltered: lists every ticket in the system.
+            tickets = self._call("GET", "/tickets", "/tickets", expect=200)
+        return [t for t in tickets if t["eventId"] == event_id]
 
     def _call(self, method: str, path: str, name: str, *, expect: int,
               json: dict | None = None, json_body: bool = True,

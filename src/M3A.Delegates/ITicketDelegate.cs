@@ -8,6 +8,9 @@ public interface ITicketDelegate
 {
     Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Returns the tickets of one event; empty when the event has none or does not exist.</summary>
+    Task<IReadOnlyList<Ticket>> GetByEventAsync(string eventId, CancellationToken cancellationToken = default);
+
     Task<Ticket?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
     /// <summary>Creates a ticket for the given event with status Issued.</summary>

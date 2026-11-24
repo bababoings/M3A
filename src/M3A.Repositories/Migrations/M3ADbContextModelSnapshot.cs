@@ -69,7 +69,7 @@ namespace M3A.Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventId");
+                    b.HasIndex("EventId", "Status");
 
                     b.ToTable("tickets", (string)null);
                 });

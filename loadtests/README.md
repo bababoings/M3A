@@ -17,6 +17,20 @@ python3 -m venv .venv-loadtests
 .venv-loadtests/bin/pip install -r loadtests/requirements.txt
 ```
 
+## Seed data
+
+`seed.py` fills the database through the API (standard library only) so tests run against
+realistic table sizes: by default 100 venues, 300 events and ~50k tickets, ~35% purchased and a
+fifth of those redeemed. It takes about 3 minutes on kind and refuses to run twice unless you
+pass `--append`. See `--help` for sizes and `--host` for a local `dotnet run`.
+
+```sh
+python3 loadtests/seed.py                                # http://127.0.0.1:8080
+```
+
+`GET /tickets` has no paging, and every journey calls it, so the seed size directly sets the
+size of that response (~5.5 MB with the defaults).
+
 ## Run
 
 Against the kind deployment (`docs/kubernetes-deployment.md`), from the repository root:

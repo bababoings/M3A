@@ -7,6 +7,8 @@
 # Kubernetes Secret, ...) — .env is excluded by .containerignore and never baked in.
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# Set by Podman/BuildKit to the target platform's architecture (amd64, arm64).
+ARG TARGETARCH
 WORKDIR /src
 
 # Restore first, from project files only, so the package layer is cached until a
@@ -16,10 +18,17 @@ COPY src/M3A.Domain/M3A.Domain.csproj             src/M3A.Domain/
 COPY src/M3A.Repositories/M3A.Repositories.csproj src/M3A.Repositories/
 COPY src/M3A.Delegates/M3A.Delegates.csproj       src/M3A.Delegates/
 COPY src/M3A.Api/M3A.Api.csproj                   src/M3A.Api/
-RUN dotnet restore src/M3A.Api/M3A.Api.csproj
+# ReadyToRun needs a runtime identifier: linux-x64 or linux-arm64.
+RUN RID=linux-$([ "$TARGETARCH" = "amd64" ] && echo x64 || echo "${TARGETARCH:-x64}") \
+ && echo "$RID" > /tmp/rid \
+ && dotnet restore src/M3A.Api/M3A.Api.csproj -r "$RID" -p:PublishReadyToRun=true
 
 COPY src/ src/
-RUN dotnet publish src/M3A.Api/M3A.Api.csproj -c Release -o /app --no-restore --no-self-contained
+# ReadyToRun: methods are precompiled to native code in the image, so the API starts with
+# optimized code instead of JIT-compiling it. With a 100m CPU limit the JIT competes with requests
+# for the same quota, and in the stress tests that warm-up took 2-5 minutes and varied a lot.
+RUN dotnet publish src/M3A.Api/M3A.Api.csproj -c Release -o /app --no-restore --no-self-contained \
+    -r "$(cat /tmp/rid)" -p:PublishReadyToRun=true
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app

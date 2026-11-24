@@ -43,6 +43,18 @@ spec:
               value: http://tempo.monitoring.svc.cluster.local:4317
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: grpc
+            # The image is ReadyToRun-compiled (Containerfile.api); without the instrumented PGO
+            # tier, hot methods are recompiled once instead of twice. Under a 100m CPU limit the
+            # JIT competes with requests for the same quota (docs/stress-test/REPORT.md, phase 5).
+            - name: DOTNET_TieredPGO
+              value: "0"
+            # Npgsql's default pool is 100 connections per Pod, but PostgreSQL accepts 100 in total
+            # (97 for non-superusers). With 4 replicas under overload the pools outgrew that and
+            # Postgres refused connections ("remaining connection slots are reserved"), turning
+            # into 500s and failed readiness. 20 per Pod keeps 4 replicas at 80. A Pod at 100m
+            # cannot use more than a handful at once anyway. (docs/stress-test/REPORT.md, phase 8)
+            - name: ConnectionStrings__DefaultConnection
+              value: Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USERNAME};Password=${DB_PASSWORD};Maximum Pool Size=20
           # Readiness checks the database: an unreachable DB takes the Pod out of the Service
           # without restarting it. Liveness only checks the process, so a DB outage never
           # causes a restart loop. See src/M3A.Api/Extensions/HealthCheckExtensions.cs.
@@ -63,13 +75,15 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           # Capped at 10% of a core. The HPA's 40% target is relative to the request: ~40m per Pod.
+          # 256Mi: with GET /tickets?eventId= the working set stays ~100Mi under load (it reached
+          # 512Mi and was OOMKilled when every call returned the whole tickets table).
           resources:
             requests:
               cpu: 100m
               memory: 128Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 256Mi
 ---
 apiVersion: v1
 kind: Service

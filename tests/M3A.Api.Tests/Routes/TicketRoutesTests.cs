@@ -33,6 +33,37 @@ public class TicketRoutesTests(M3AApiFactory factory) : M3AApiTests(factory)
     }
 
     [Fact]
+    public async Task GetAll_FilteredByEventId_ReturnsOnlyThatEventsTickets()
+    {
+        var eventId = await CreateEventAsync(eventCapacity: 4);
+        var otherEventId = await CreateEventAsync(eventCapacity: 2);
+
+        var tickets = await ReadAsync<List<TicketDto>>(await Client.GetAsync($"/tickets?eventId={eventId}"));
+
+        Assert.NotNull(tickets);
+        Assert.Equal(4, tickets.Count);
+        Assert.All(tickets, ticket => Assert.Equal(eventId, ticket.EventId));
+        Assert.DoesNotContain(tickets, ticket => ticket.EventId == otherEventId);
+    }
+
+    [Fact]
+    public async Task GetAll_FilteredByUnknownEventId_ReturnsEmptyList()
+    {
+        var tickets = await ReadAsync<List<TicketDto>>(await Client.GetAsync("/tickets?eventId=no-such-event"));
+
+        Assert.NotNull(tickets);
+        Assert.Empty(tickets);
+    }
+
+    [Fact]
+    public async Task GetAll_Returns400_WhenEventIdIsMalformed()
+    {
+        var response = await Client.GetAsync("/tickets?eventId=not%20an%20id");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Post_Returns201WithLocation_WhenEventHasAFreePlace()
     {
         // Events start with their full inventory, so free a place first.

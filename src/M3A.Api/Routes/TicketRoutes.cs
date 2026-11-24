@@ -19,8 +19,9 @@ public static class TicketRoutes
 
         group.MapGet("/", GetAllAsync)
             .WithName("GetTickets")
-            .WithSummary("List all tickets")
-            .Produces<IReadOnlyList<TicketDto>>();
+            .WithSummary("List all tickets, or only one event's with ?eventId=")
+            .Produces<IReadOnlyList<TicketDto>>()
+            .ProducesValidationProblem();
 
         group.MapGet("/{ticketId}", GetByIdAsync)
             .WithName("GetTicketById")
@@ -65,10 +66,21 @@ public static class TicketRoutes
 
     private static async Task<IResult> GetAllAsync(
         ITicketDelegate ticketDelegate,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? eventId = null)
     {
-        var tickets = await ticketDelegate.GetAllAsync(cancellationToken);
-        return TypedResults.Ok(tickets.ToDtos());
+        if (eventId is null)
+        {
+            return TypedResults.Ok((await ticketDelegate.GetAllAsync(cancellationToken)).ToDtos());
+        }
+
+        if (!ResourceId.IsValid(eventId))
+        {
+            return ResultExtensions.InvalidIdProblem(nameof(eventId), eventId);
+        }
+
+        // Filtered in SQL (index on tickets.EventId) instead of shipping every ticket to the client.
+        return TypedResults.Ok((await ticketDelegate.GetByEventAsync(eventId, cancellationToken)).ToDtos());
     }
 
     private static async Task<IResult> GetByIdAsync(

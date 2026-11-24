@@ -29,3 +29,8 @@ appsettings.Local.json
 # Load tests
 .venv-loadtests/
 loadtests/results/
+# Load test results & reports
+docs/stress-test/
+loadtests/**/locust*.csv
+loadtests/**/locust*.html
+loadtests/**/*.log

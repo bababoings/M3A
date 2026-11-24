@@ -5,6 +5,9 @@ namespace M3A.Repositories;
 /// <summary>Ticket data access.</summary>
 public interface ITicketRepository : IRepository<Ticket>
 {
+    /// <summary>Returns the tickets of one event (any status), read-only.</summary>
+    Task<IReadOnlyList<Ticket>> GetByEventAsync(string eventId, CancellationToken cancellationToken = default);
+
     /// <summary>Returns how many tickets have been issued for the given event.</summary>
     Task<int> CountForEventAsync(string eventId, CancellationToken cancellationToken = default);
 

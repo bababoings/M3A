@@ -1,0 +1,32 @@
+# Scrapes Traefik's Prometheus metrics (entrypoint "metrics", :9100, enabled by the chart's
+# defaults) so the stress-test dashboard can show per-request routing through the IngressRoute.
+# LOCAL kind development only. Needs the Prometheus Operator CRDs (docs/monitoring.md section 1)
+# and Traefik installed (docs/traefik-ingress.md).
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-metrics
+  namespace: traefik
+  labels:
+    app.kubernetes.io/name: traefik-metrics
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: traefik
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traefik-metrics
+  endpoints:
+    - port: metrics
+      interval: 15s

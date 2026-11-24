@@ -16,12 +16,14 @@ grafana:
     nodePort: 30030
   # The chart's datasource sidecar (enabled by default) loads ConfigMaps labelled
   # grafana_datasource: "1" from this namespace — see tempo-datasource.yml.
+  # Grafana 13 needs more than 384Mi: at that limit it spent ~3 cores in GC and timed out
+  # serving its own static files whenever a dashboard was opened (stress-test captures).
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
-      memory: 384Mi
+      memory: 1Gi
 
 prometheus:
   service:

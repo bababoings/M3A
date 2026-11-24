@@ -14,6 +14,9 @@ public sealed class TicketDelegate(
     public Task<IReadOnlyList<Ticket>> GetAllAsync(CancellationToken cancellationToken = default) =>
         ticketRepository.GetAllAsync(cancellationToken);
 
+    public Task<IReadOnlyList<Ticket>> GetByEventAsync(string eventId, CancellationToken cancellationToken = default) =>
+        ticketRepository.GetByEventAsync(eventId, cancellationToken);
+
     public Task<Ticket?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
         ticketRepository.GetByIdAsync(id, cancellationToken);
 

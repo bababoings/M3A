@@ -62,6 +62,7 @@ CREATE TABLE tickets (
     CONSTRAINT "FK_tickets_events_EventId" FOREIGN KEY ("EventId")
         REFERENCES events ("Id") ON DELETE RESTRICT
 );
-CREATE INDEX "IX_tickets_EventId" ON tickets ("EventId");
+-- EventId leads, so this also serves the FK and every per-event query (see TicketConfiguration).
+CREATE INDEX "IX_tickets_EventId_Status" ON tickets ("EventId", "Status");
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO m3a_svc;
